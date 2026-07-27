@@ -1804,6 +1804,174 @@ html[dir="rtl"] #page-content-wrapper { margin-left: 0 !important; }
 .sidebar-nav .nav-link:hover { transform: translateX(4px); }
 html[dir="rtl"] .sidebar-nav .nav-link:hover { transform: translateX(-4px); }
 
+/* ============ REPORT SHOW — BANNER ============ */
+.show-banner-meta { background: rgba(0,0,0,0.25); backdrop-filter: blur(8px); padding: 10px 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.show-banner-meta-group { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.show-banner-meta-item { display: flex; align-items: center; gap: 5px; color: rgba(255,255,255,0.85); font-size: 11px; font-weight: 700; }
+.show-banner-meta-item i { font-size: 0.65rem; }
+.show-banner-meta-item.muted { color: rgba(255,255,255,0.7); font-weight: 500; }
+.show-banner-meta-item.ghost { color: rgba(255,255,255,0.6); font-weight: 500; font-size: 10px; }
+.show-banner-title { color: #fff; font-weight: 800; font-size: 1.2rem; margin: 0 0 8px 0; line-height: 1.3; }
+.show-banner-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.show-banner-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.show-banner-icon i { color: #fff; font-size: 18px; }
+.show-banner-label-group { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.show-banner-wilaya { font-size: 9px; font-family: var(--font-mono); font-weight: 800; color: rgba(255,255,255,0.7); letter-spacing: 0.12em; text-transform: uppercase; }
+.show-banner-sublabel { font-size: 10px; color: rgba(255,255,255,0.55); font-weight: 600; }
+.show-banner-back {
+    background: rgba(255,255,255,0.15); color: #fff;
+    border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(8px);
+    font-weight: 700; border-radius: 10px;
+    padding: 6px 14px; font-size: 0.8rem; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+}
+.show-banner-back:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+/* ============ REPORT SHOW — SECTION HEADERS ============ */
+.show-section-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; flex-shrink: 0;
+}
+.show-section-header { display: flex; align-items: center; gap: 8px; }
+.show-section-header h6 { margin: 0; font-weight: 700; font-size: 0.88rem; }
+
+/* ============ REPORT SHOW — DETAIL DESCRIPTION ============ */
+.show-description {
+    font-size: 0.9rem; line-height: 1.7; color: var(--text-secondary);
+    margin-bottom: 1rem; padding: 12px 16px;
+    background: var(--bg-elevated); border-radius: 10px;
+    border-left: 3px solid var(--accent);
+}
+
+/* ============ REPORT SHOW — MAP ============ */
+.show-map-coords {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px;
+}
+.show-map-coords small {
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted);
+}
+.show-map-link {
+    color: var(--accent); font-size: 0.78rem; text-decoration: none;
+    font-weight: 600; display: inline-flex; align-items: center; gap: 4px;
+    transition: color 0.2s;
+}
+.show-map-link:hover { color: var(--accent-hover); text-decoration: underline; }
+
+/* ============ REPORT SHOW — COMMENTS ============ */
+.show-comment-form { display: flex; gap: 10px; }
+.show-comment-input {
+    flex: 1; display: flex; gap: 8px;
+}
+.show-comment-send {
+    border-radius: 10px; width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+}
+.show-empty-state {
+    text-align: center; padding: 24px 0;
+}
+.show-empty-state i { font-size: 1.5rem; color: var(--text-muted); opacity: 0.3; display: block; margin-bottom: 8px; }
+.show-empty-state p { font-size: 0.82rem; color: var(--text-muted); margin: 0; }
+
+/* ============ REPORT SHOW — HISTORY ============ */
+.show-history-action {
+    font-size: 0.8rem; font-weight: 700; color: var(--text-primary);
+    text-transform: capitalize;
+}
+.show-history-user { font-size: 0.72rem; color: var(--text-muted); }
+.show-history-time { font-size: 0.68rem; color: var(--text-muted); white-space: nowrap; }
+.show-history-diff { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.72rem; }
+.show-history-diff-old {
+    background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;
+    font-weight: 600;
+}
+.show-history-diff-arrow {
+    color: var(--text-muted); font-size: 0.55rem;
+}
+.show-history-diff-new {
+    background: var(--accent-surface); color: var(--accent);
+    padding: 2px 8px; border-radius: 4px; font-weight: 600;
+}
+.show-history-note {
+    font-size: 0.7rem; color: var(--text-muted); margin-top: 3px;
+    font-style: italic;
+}
+.show-history-value {
+    font-size: 0.75rem; color: var(--text-secondary); margin-top: 3px;
+}
+
+/* ============ REPORT SHOW — SIDEBAR ACTIONS ============ */
+.show-action-btn {
+    border-radius: 8px; width: 100%; font-weight: 600;
+    font-size: 0.8rem; display: flex; align-items: center;
+    justify-content: center; gap: 6px; padding: 8px 12px;
+    transition: all 0.2s;
+}
+.show-action-btn:hover { transform: translateY(-1px); }
+.show-action-row { display: flex; gap: 8px; }
+.show-action-row .btn { flex: 1; border-radius: 8px; font-size: 0.78rem; }
+
+/* ============ REPORT SHOW — SIDEBAR CONTACT ============ */
+.show-contact-item {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.82rem; padding: 6px 0;
+}
+.show-contact-item i { width: 14px; font-size: 0.72rem; color: var(--text-muted); text-align: center; }
+.show-contact-item span { color: var(--text-primary); }
+
+/* ============ REPORT SHOW — SIDEBAR RATING ============ */
+.show-rating-stars { display: flex; align-items: center; gap: 2px; margin-bottom: 8px; }
+.show-rating-stars i { font-size: 1.2rem; transition: transform 0.2s; }
+.show-rating-stars i.filled { color: #f59e0b; }
+.show-rating-stars i.empty { color: #d1d5db; }
+.show-rating-score { font-size: 0.85rem; font-weight: 700; margin-left: 6px; color: var(--text-primary); }
+.show-rating-comment { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4; margin: 0; }
+
+/* ============ REPORT SHOW — SIDEBAR ORG ============ */
+.show-org-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; }
+
+/* ============ REPORT SHOW — SHARE BUTTONS ============ */
+.show-share-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.show-share-row .btn { flex: 1; border-radius: 8px; font-size: 0.78rem; }
+.show-share-whatsapp {
+    background: #25d366; color: #fff; border: none;
+    border-radius: 8px; font-size: 0.72rem; font-weight: 600;
+    padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px;
+    transition: all 0.2s; text-decoration: none;
+}
+.show-share-whatsapp:hover { background: #1da851; color: #fff; transform: translateY(-1px); }
+.show-share-copy {
+    background: transparent; color: var(--accent); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 0.72rem; font-weight: 600;
+    padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px;
+    cursor: pointer; transition: all 0.2s;
+}
+.show-share-copy:hover { border-color: var(--accent); background: var(--accent-surface); }
+
+/* ============ REPORT SHOW — INTERVENTION PHOTOS ============ */
+.show-intervention-section-title {
+    font-size: 0.82rem; font-weight: 700; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+}
+
+/* ============ REPORT SHOW — GALLERY LABEL ============ */
+.show-gallery-label {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+}
+
+/* ============ REPORT SHOW — CARD ROUNDED ============ */
+.show-card { border-radius: 16px; }
+.show-card .card-header { border-radius: 16px 16px 0 0; }
+
 /* ============ REPORT SHOW PAGE ============ */
 .show-wf-stepper { position: relative; display: flex; gap: 0; padding: 1.25rem; }
 .show-wf-stepper .wf-col { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; z-index: 1; }

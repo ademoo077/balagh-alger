@@ -14,7 +14,7 @@ $wfSteps = [
 ];
 ?>
 <!-- ==================== WORKFLOW STEPPER ==================== -->
-<div class="card mb-3 animate-fade-in-up" style="border-radius:16px;overflow:hidden;">
+<div class="card mb-3 animate-fade-in-up show-card" style="overflow:hidden;">
     <div class="show-wf-stepper">
         <?php foreach ($wfSteps as $stepNum => $stepInfo): ?>
         <div class="wf-col">
@@ -44,17 +44,15 @@ $wfSteps = [
     <div class="banner-content">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                    <div style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-shield-halved" style="color:#fff;font-size:18px;"></i>
-                    </div>
+                <div class="show-banner-label-group">
+                    <div class="show-banner-icon"><i class="fas fa-shield-halved"></i></div>
                     <div>
-                        <div style="font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:800;color:rgba(255,255,255,0.7);letter-spacing:0.12em;text-transform:uppercase;"><?= __('app.wilaya') ?></div>
-                        <div style="font-size:10px;color:rgba(255,255,255,0.55);font-weight:600;"><?= __('reports.wilaya_banner') ?></div>
+                        <div class="show-banner-wilaya"><?= __('app.wilaya') ?></div>
+                        <div class="show-banner-sublabel"><?= __('reports.wilaya_banner') ?></div>
                     </div>
                 </div>
-                <h4 style="color:#fff;font-weight:800;font-size:1.2rem;margin:0 0 8px 0;line-height:1.3;"><?= \App\Helpers\Helper::sanitize($report['title']) ?></h4>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <h4 class="show-banner-title"><?= \App\Helpers\Helper::sanitize($report['title']) ?></h4>
+                <div class="show-banner-badges">
                     <span class="qr-badge" style="background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.2);">
                         <i class="fas fa-hashtag" style="font-size:0.65rem;"></i>
                         <?= $report['tracking_code'] ?>
@@ -64,26 +62,16 @@ $wfSteps = [
                     <?= \App\Helpers\DeadlineHelper::renderBadge($report['created_at'], (int)($report['deadline_days'] ?? 7), $report['status']) ?>
                 </div>
             </div>
-            <a href="/reports" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(8px);font-weight:700;border-radius:10px;">
-                <i class="fas fa-arrow-left me-1"></i> <?= __('common.back') ?>
-            </a>
+            <a href="/reports" class="show-banner-back"><i class="fas fa-arrow-left"></i> <?= __('common.back') ?></a>
         </div>
     </div>
-    <div style="background:rgba(0,0,0,0.25);backdrop-filter:blur(8px);padding:10px 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:5px;color:rgba(255,255,255,0.85);font-size:11px;font-weight:700;">
-                <i class="fas fa-calendar-check" style="color:#059669;"></i><span><?= date('d/m/Y', strtotime($report['created_at'])) ?></span>
-            </div>
-            <div style="display:flex;align-items:center;gap:5px;color:rgba(255,255,255,0.85);font-size:11px;font-weight:700;">
-                <i class="fas fa-clock" style="color:#d97706;"></i><span><?= date('H:i:s', strtotime($report['created_at'])) ?></span>
-            </div>
-            <div style="display:flex;align-items:center;gap:5px;color:rgba(255,255,255,0.7);font-size:10px;">
-                <i class="fas fa-stopwatch"></i><span><?= \App\Helpers\Helper::timeAgo($report['created_at']) ?></span>
-            </div>
+    <div class="show-banner-meta">
+        <div class="show-banner-meta-group">
+            <div class="show-banner-meta-item"><i class="fas fa-calendar-check" style="color:#059669;"></i><span><?= date('d/m/Y', strtotime($report['created_at'])) ?></span></div>
+            <div class="show-banner-meta-item"><i class="fas fa-clock" style="color:#d97706;"></i><span><?= date('H:i:s', strtotime($report['created_at'])) ?></span></div>
+            <div class="show-banner-meta-item muted"><i class="fas fa-stopwatch"></i><span><?= \App\Helpers\Helper::timeAgo($report['created_at']) ?></span></div>
         </div>
-        <div style="display:flex;align-items:center;gap:5px;color:rgba(255,255,255,0.6);font-size:10px;">
-            <i class="fas fa-user"></i><span><?= $report['citizen_name'] ?? __('reports.anonymous') ?></span>
-        </div>
+        <div class="show-banner-meta-item ghost"><i class="fas fa-user"></i><span><?= $report['citizen_name'] ?? __('reports.anonymous') ?></span></div>
     </div>
 </div>
 
@@ -91,17 +79,15 @@ $wfSteps = [
     <div class="col-lg-8">
 
         <!-- ==================== DETAILS ==================== -->
-        <div class="card mb-3 animate-fade-in-up" style="border-radius:16px;">
-            <div class="card-header" style="border-radius:16px 16px 0 0;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:28px;height:28px;border-radius:8px;background:var(--accent-surface);display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-info-circle" style="color:var(--accent);font-size:0.72rem;"></i>
-                    </div>
-                    <h6 class="mb-0" style="font-weight:700;"><?= __('reports.details') ?></h6>
+        <div class="card mb-3 animate-fade-in-up show-card">
+            <div class="card-header">
+                <div class="show-section-header">
+                    <div class="show-section-icon" style="background:var(--accent-surface);color:var(--accent);"><i class="fas fa-info-circle"></i></div>
+                    <h6 class="mb-0"><?= __('reports.details') ?></h6>
                 </div>
             </div>
             <div class="card-body">
-                <p style="font-size:0.9rem;line-height:1.6;color:var(--text-secondary);margin-bottom:1rem;"><?= nl2br(\App\Helpers\Helper::sanitize($report['description'])) ?></p>
+                <p class="show-description"><?= nl2br(\App\Helpers\Helper::sanitize($report['description'])) ?></p>
 
                 <div class="show-info-grid">
                     <div class="show-info-item">
@@ -133,9 +119,9 @@ $wfSteps = [
                 <?php if ($report['latitude'] && $report['longitude']): ?>
                 <div class="mt-3">
                     <div id="reportMap" class="c-show-map"></div>
-                    <div class="d-flex justify-content-between align-items-center mt-1">
-                        <small class="text-muted" style="font-family:var(--font-mono);font-size:0.72rem;"><?= $report['latitude'] ?>, <?= $report['longitude'] ?></small>
-                        <a href="https://www.google.com/maps?q=<?= $report['latitude'] ?>,<?= $report['longitude'] ?>" target="_blank" style="color:var(--accent);font-size:0.78rem;text-decoration:none;font-weight:600;"><?= __('reports.google_maps') ?> <i class="fas fa-external-link-alt" style="font-size:0.65rem;"></i></a>
+                    <div class="show-map-coords">
+                        <small><?= $report['latitude'] ?>, <?= $report['longitude'] ?></small>
+                        <a href="https://www.google.com/maps?q=<?= $report['latitude'] ?>,<?= $report['longitude'] ?>" target="_blank" class="show-map-link"><?= __('reports.google_maps') ?> <i class="fas fa-external-link-alt" style="font-size:0.65rem;"></i></a>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -144,13 +130,11 @@ $wfSteps = [
 
         <!-- ==================== PHOTOS ==================== -->
         <?php if (!empty($images)): ?>
-        <div class="card mb-3 animate-fade-in-up" style="border-radius:16px;">
-            <div class="card-header" style="border-radius:16px 16px 0 0;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:28px;height:28px;border-radius:8px;background:var(--cyan-surface);display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-images" style="color:var(--cyan);font-size:0.72rem;"></i>
-                    </div>
-                    <h6 class="mb-0" style="font-weight:700;"><?= __('reports.photos') ?> (<?= count($images) ?>)</h6>
+        <div class="card mb-3 animate-fade-in-up show-card">
+            <div class="card-header">
+                <div class="show-section-header">
+                    <div class="show-section-icon" style="background:var(--cyan-surface);color:var(--cyan);"><i class="fas fa-images"></i></div>
+                    <h6 class="mb-0"><?= __('reports.photos') ?> (<?= count($images) ?>)</h6>
                 </div>
             </div>
             <div class="card-body">
@@ -183,13 +167,11 @@ $wfSteps = [
 
         <!-- ==================== INTERVENTION PHOTOS ==================== -->
         <?php if (!empty($interventionPhotos)): ?>
-        <div class="card mb-3 animate-fade-in-up" style="border-radius:16px;">
-            <div class="card-header" style="border-radius:16px 16px 0 0;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:28px;height:28px;border-radius:8px;background:var(--green-surface);display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-camera-retro" style="color:var(--green);font-size:0.72rem;"></i>
-                    </div>
-                    <h6 class="mb-0" style="font-weight:700;"><?= __('reports.intervention_photos') ?> (<?= count($interventionPhotos) ?>)</h6>
+        <div class="card mb-3 animate-fade-in-up show-card">
+            <div class="card-header">
+                <div class="show-section-header">
+                    <div class="show-section-icon" style="background:var(--green-surface);color:var(--green);"><i class="fas fa-camera-retro"></i></div>
+                    <h6 class="mb-0"><?= __('reports.intervention_photos') ?> (<?= count($interventionPhotos) ?>)</h6>
                 </div>
             </div>
             <div class="card-body">
@@ -234,7 +216,7 @@ $wfSteps = [
                 <?php foreach ($grouped as $type => $photos): ?>
                     <?php if (empty($photos) || $type === 'before' || ($type === 'after' && $hasCitizenPhotos)) continue; ?>
                     <div class="mb-3">
-                        <h6 class="fw-bold mb-2" style="font-size:0.82rem;"><i class="<?= $typeIcons[$type] ?> me-1" style="color:<?= $type === 'before' ? 'var(--amber)' : ($type === 'after' ? 'var(--green)' : 'var(--accent)') ?>;"></i><?= $typeLabels[$type] ?></h6>
+                        <h6 class="show-intervention-section-title"><i class="<?= $typeIcons[$type] ?>" style="color:<?= $type === 'before' ? 'var(--amber)' : ($type === 'after' ? 'var(--green)' : 'var(--accent)') ?>;"></i><?= $typeLabels[$type] ?></h6>
                         <div class="show-gallery">
                             <?php foreach ($photos as $p): ?>
                             <div class="show-gallery-item">
@@ -254,13 +236,11 @@ $wfSteps = [
         <?php endif; ?>
 
         <!-- ==================== COMMENTS ==================== -->
-        <div class="card mb-3 animate-fade-in-up" style="border-radius:16px;">
-            <div class="card-header" style="border-radius:16px 16px 0 0;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:28px;height:28px;border-radius:8px;background:rgba(124,58,237,0.08);display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-comments" style="color:var(--purple);font-size:0.72rem;"></i>
-                    </div>
-                    <h6 class="mb-0" style="font-weight:700;"><?= __('reports.comments') ?> (<?= count($comments) ?>)</h6>
+        <div class="card mb-3 animate-fade-in-up show-card">
+            <div class="card-header">
+                <div class="show-section-header">
+                    <div class="show-section-icon" style="background:rgba(124,58,237,0.08);color:var(--purple);"><i class="fas fa-comments"></i></div>
+                    <h6 class="mb-0"><?= __('reports.comments') ?> (<?= count($comments) ?>)</h6>
                 </div>
             </div>
             <div class="card-body">
@@ -279,22 +259,20 @@ $wfSteps = [
                 </div>
                 <?php endforeach; ?>
                 <?php if (empty($comments)): ?>
-                <div class="text-center py-3">
-                    <i class="fas fa-comment-slash d-block mb-2" style="font-size:1.5rem;color:var(--text-muted);opacity:0.3;"></i>
-                    <p class="text-muted" style="font-size:0.82rem;"><?= __('reports.no_comments') ?></p>
+                <div class="show-empty-state">
+                    <i class="fas fa-comment-slash"></i>
+                    <p><?= __('reports.no_comments') ?></p>
                 </div>
                 <?php endif; ?>
                 <form method="POST" action="/reports/<?= $report['id'] ?>/comment" class="mt-3">
                     <input type="hidden" name="_token" value="<?= $csrfToken ?>">
-                    <div style="display:flex;gap:10px;">
+                    <div class="show-comment-form">
                         <div class="comment-avatar" style="background:var(--accent-surface);color:var(--accent);width:34px;height:34px;min-width:34px;">
                             <?= strtoupper(substr(\App\Helpers\Session::getUserName(), 0, 1)) ?>
                         </div>
-                        <div style="flex:1;display:flex;gap:8px;">
+                        <div class="show-comment-input">
                             <input type="text" class="form-control" name="comment" placeholder="<?= __('reports.add_comment') ?>" required style="border-radius:10px;font-size:0.85rem;">
-                            <button class="btn btn-primary" type="submit" style="border-radius:10px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
+                            <button class="btn btn-primary show-comment-send" type="submit"><i class="fas fa-paper-plane"></i></button>
                         </div>
                     </div>
                 </form>
@@ -302,13 +280,11 @@ $wfSteps = [
         </div>
 
         <!-- ==================== HISTORY ==================== -->
-        <div class="card mb-3 animate-fade-in-up" style="border-radius:16px;">
-            <div class="card-header" style="border-radius:16px 16px 0 0;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:28px;height:28px;border-radius:8px;background:var(--amber-surface);display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-history" style="color:var(--amber);font-size:0.72rem;"></i>
-                    </div>
-                    <h6 class="mb-0" style="font-weight:700;"><?= __('reports.history') ?></h6>
+        <div class="card mb-3 animate-fade-in-up show-card">
+            <div class="card-header">
+                <div class="show-section-header">
+                    <div class="show-section-icon" style="background:var(--amber-surface);color:var(--amber);"><i class="fas fa-history"></i></div>
+                    <h6 class="mb-0"><?= __('reports.history') ?></h6>
                 </div>
             </div>
             <div class="card-body">
@@ -338,33 +314,33 @@ $wfSteps = [
                         <div class="hist-card">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);"><?= htmlspecialchars($h['action']) ?></div>
+                                    <div class="show-history-action"><?= htmlspecialchars($h['action']) ?></div>
                                     <?php if ($h['first_name']): ?>
-                                    <div style="font-size:0.72rem;color:var(--text-muted);"><?= htmlspecialchars($h['first_name']) ?> <?= htmlspecialchars($h['last_name']) ?></div>
+                                    <div class="show-history-user"><?= htmlspecialchars($h['first_name']) ?> <?= htmlspecialchars($h['last_name']) ?></div>
                                     <?php endif; ?>
                                 </div>
-                                <small class="text-muted" style="font-size:0.68rem;white-space:nowrap;"><?= \App\Helpers\Helper::timeAgo($h['created_at']) ?></small>
+                                <small class="show-history-time"><?= \App\Helpers\Helper::timeAgo($h['created_at']) ?></small>
                             </div>
                             <?php if ($h['old_value'] && $h['new_value']): ?>
-                            <div class="mt-1" style="font-size:0.72rem;">
-                                <span style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;font-weight:600;"><?= $h['old_value'] ?></span>
-                                <i class="fas fa-arrow-right mx-1" style="font-size:0.55rem;color:var(--text-muted);"></i>
-                                <span style="background:var(--accent-surface);color:var(--accent);padding:2px 6px;border-radius:4px;font-weight:600;"><?= $h['new_value'] ?></span>
+                            <div class="show-history-diff">
+                                <span class="show-history-diff-old"><?= $h['old_value'] ?></span>
+                                <i class="fas fa-arrow-right show-history-diff-arrow"></i>
+                                <span class="show-history-diff-new"><?= $h['new_value'] ?></span>
                             </div>
                             <?php elseif ($h['new_value']): ?>
-                            <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:3px;"><?= htmlspecialchars(mb_substr($h['new_value'], 0, 120)) ?></div>
+                            <div class="show-history-value"><?= htmlspecialchars(mb_substr($h['new_value'], 0, 120)) ?></div>
                             <?php endif; ?>
                             <?php if ($h['note']): ?>
-                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;font-style:italic;"><?= htmlspecialchars($h['note']) ?></div>
+                            <div class="show-history-note"><?= htmlspecialchars($h['note']) ?></div>
                             <?php endif; ?>
                         </div>
                     </div>
                     <?php endforeach; ?>
                 </div>
                 <?php else: ?>
-                <div class="text-center py-3">
-                    <i class="fas fa-clock d-block mb-2" style="font-size:1.5rem;color:var(--text-muted);opacity:0.3;"></i>
-                    <p class="text-muted" style="font-size:0.82rem;"><?= __('reports.no_history') ?></p>
+                <div class="show-empty-state">
+                    <i class="fas fa-clock"></i>
+                    <p><?= __('reports.no_history') ?></p>
                 </div>
                 <?php endif; ?>
             </div>
@@ -392,7 +368,7 @@ $wfSteps = [
                         <option value="<?= $u['id'] ?>" <?= $report['assigned_to'] == $u['id'] ? 'selected' : '' ?>><?= $u['first_name'] ?> <?= $u['last_name'] ?> <small class="text-muted">(<?= $u['role_name'] ?>)</small></option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="submit" class="btn btn-sm btn-warning w-100" style="border-radius:8px;"><i class="fas fa-user-check me-1"></i> <?= __('reports.assign') ?></button>
+                    <button type="submit" class="btn btn-sm btn-warning show-action-btn"><i class="fas fa-user-check me-1"></i> <?= __('reports.assign') ?></button>
                 </form>
                 <?php endif; ?>
 
@@ -418,7 +394,7 @@ $wfSteps = [
                         <?php endforeach; ?>
                     </select>
                     <textarea class="form-control form-control-sm mb-2" name="resolution_note" placeholder="<?= __('reports.note_optional') ?>" rows="2" style="border-radius:8px;"></textarea>
-                    <button type="submit" class="btn btn-sm btn-primary w-100" style="border-radius:8px;" data-confirm="<?= __('ui.modify_status') ?>"><i class="fas fa-save me-1"></i> <?= __('reports.update') ?></button>
+                    <button type="submit" class="btn btn-sm btn-primary show-action-btn" data-confirm="<?= __('ui.modify_status') ?>"><i class="fas fa-save me-1"></i> <?= __('reports.update') ?></button>
                 </form>
                 <?php endif; ?>
                 <?php endif; ?>
@@ -433,23 +409,23 @@ $wfSteps = [
                         <option value="<?= $org['id'] ?>" <?= $report['organization_id'] == $org['id'] ? 'selected' : '' ?>><?= $org['name'] ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="submit" class="btn btn-sm btn-outline-warning w-100" style="border-radius:8px;" data-confirm="<?= __('ui.redirect_report') ?>"><i class="fas fa-exchange-alt me-1"></i> <?= __('reports.redirect') ?></button>
+                    <button type="submit" class="btn btn-sm btn-outline-warning show-action-btn" data-confirm="<?= __('ui.redirect_report') ?>"><i class="fas fa-exchange-alt me-1"></i> <?= __('reports.redirect') ?></button>
                 </form>
                 <?php endif; ?>
 
-                <div class="d-flex gap-2">
-                    <a href="/reports/<?= $report['id'] ?>/pdf" class="btn btn-sm btn-outline-secondary flex-fill" style="border-radius:8px;"><i class="fas fa-file-pdf me-1"></i> PDF</a>
-                    <a href="javascript:window.print()" class="btn btn-sm btn-outline-secondary flex-fill" style="border-radius:8px;"><i class="fas fa-print me-1"></i> <?= __('reports.print') ?></a>
+                <div class="show-action-row">
+                    <a href="/reports/<?= $report['id'] ?>/pdf" class="btn btn-sm btn-outline-secondary"><i class="fas fa-file-pdf me-1"></i> PDF</a>
+                    <a href="javascript:window.print()" class="btn btn-sm btn-outline-secondary"><i class="fas fa-print me-1"></i> <?= __('reports.print') ?></a>
                 </div>
 
                 <!-- Share -->
                 <div style="margin-top:10px;">
-                    <div class="d-flex gap-2 mb-2">
-                        <a href="/partager/<?= $report['tracking_code'] ?>" target="_blank" class="btn btn-sm btn-outline-primary flex-fill" style="border-radius:8px;"><i class="fas fa-share-nodes me-1"></i> Partager</a>
+                    <div class="show-share-row">
+                        <a href="/partager/<?= $report['tracking_code'] ?>" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-share-nodes me-1"></i> Partager</a>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="https://wa.me/?text=<?= urlencode($report['title'] . "\n" . ($report['tracking_code'] ?? '') . "\n" . \App\Helpers\Router::baseUrl() . '/partager/' . $report['tracking_code']) ?>" target="_blank" class="btn btn-sm flex-fill" style="border-radius:8px;background:#25d366;color:#fff;font-size:0.72rem;"><i class="fab fa-whatsapp me-1"></i> WhatsApp</a>
-                        <button type="button" class="btn btn-sm btn-outline-primary flex-fill" style="border-radius:8px;font-size:0.72rem;" onclick="navigator.clipboard.writeText('<?= \App\Helpers\Router::baseUrl() ?>/partager/<?= $report['tracking_code'] ?>');this.innerHTML='<i class=\'fas fa-check\'></i> Copié';setTimeout(()=>this.innerHTML='<i class=\'fas fa-link\'></i> Lien',1500);"><i class="fas fa-link me-1"></i> Lien</button>
+                        <a href="https://wa.me/?text=<?= urlencode($report['title'] . "\n" . ($report['tracking_code'] ?? '') . "\n" . \App\Helpers\Router::baseUrl() . '/partager/' . $report['tracking_code']) ?>" target="_blank" class="show-share-whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                        <button type="button" class="show-share-copy" onclick="navigator.clipboard.writeText('<?= \App\Helpers\Router::baseUrl() ?>/partager/<?= $report['tracking_code'] ?>');this.innerHTML='<i class=\'fas fa-check\'></i> Copié';setTimeout(()=>this.innerHTML='<i class=\'fas fa-link\'></i> Lien',1500);"><i class="fas fa-link"></i> Lien</button>
                     </div>
                 </div>
             </div>
@@ -463,18 +439,9 @@ $wfSteps = [
                 <h6><?= __('reports.contact') ?></h6>
             </div>
             <div class="sc-body">
-                <div class="d-flex align-items-center gap-2 mb-2" style="font-size:0.82rem;">
-                    <i class="fas fa-user" style="width:14px;font-size:0.72rem;color:var(--text-muted);"></i>
-                    <span><?= $report['citizen_name'] ?? __('reports.anonymous') ?></span>
-                </div>
-                <div class="d-flex align-items-center gap-2 mb-2" style="font-size:0.82rem;">
-                    <i class="fas fa-phone" style="width:14px;font-size:0.72rem;color:var(--text-muted);"></i>
-                    <span><?= $report['citizen_phone'] ?: '—' ?></span>
-                </div>
-                <div class="d-flex align-items-center gap-2" style="font-size:0.82rem;">
-                    <i class="fas fa-envelope" style="width:14px;font-size:0.72rem;color:var(--text-muted);"></i>
-                    <span><?= $report['citizen_email'] ?: '—' ?></span>
-                </div>
+                <div class="show-contact-item"><i class="fas fa-user"></i><span><?= $report['citizen_name'] ?? __('reports.anonymous') ?></span></div>
+                <div class="show-contact-item"><i class="fas fa-phone"></i><span><?= $report['citizen_phone'] ?: '—' ?></span></div>
+                <div class="show-contact-item"><i class="fas fa-envelope"></i><span><?= $report['citizen_email'] ?: '—' ?></span></div>
             </div>
         </div>
 
@@ -486,17 +453,16 @@ $wfSteps = [
                 <h6><?= __('reports.rating_label') ?></h6>
             </div>
             <div class="sc-body">
-                <div class="mb-2">
+                <div class="show-rating-stars">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
-                    <i class="fas fa-star" style="color:<?= $i <= $rating['rating'] ? '#f59e0b' : '#d1d5db' ?>;font-size:1.2rem;transition:transform 0.2s;"></i>
+                    <i class="fas fa-star <?= $i <= $rating['rating'] ? 'filled' : 'empty' ?>"></i>
                     <?php endfor; ?>
-                    <span style="font-size:0.85rem;font-weight:700;margin-left:6px;color:var(--text-primary);"><?= $rating['rating'] ?>/5</span>
+                    <span class="show-rating-score"><?= $rating['rating'] ?>/5</span>
                 </div>
                 <?php if ($rating['comment']): ?>
-                <p class="mb-0" style="font-size:0.82rem;color:var(--text-secondary);line-height:1.4;"><?= nl2br(\App\Helpers\Helper::sanitize($rating['comment'])) ?></p>
+                <p class="show-rating-comment"><?= nl2br(\App\Helpers\Helper::sanitize($rating['comment'])) ?></p>
                 <?php endif; ?>
             </div>
-        </div>
         <?php elseif ($canRate): ?>
         <div class="show-side-card animate-fade-in-up">
             <div class="sc-header">
@@ -527,18 +493,12 @@ $wfSteps = [
                 <h6><?= __('common.organization') ?></h6>
             </div>
             <div class="sc-body">
-                <p class="fw-bold mb-2" style="font-size:0.9rem;"><?= $report['org_name'] ?></p>
+                <p class="show-org-name"><?= $report['org_name'] ?></p>
                 <?php if ($report['org_phone']): ?>
-                <div class="d-flex align-items-center gap-2 mb-1" style="font-size:0.82rem;">
-                    <i class="fas fa-phone" style="width:14px;font-size:0.72rem;color:var(--text-muted);"></i>
-                    <span><?= $report['org_phone'] ?></span>
-                </div>
+                <div class="show-contact-item"><i class="fas fa-phone"></i><span><?= $report['org_phone'] ?></span></div>
                 <?php endif; ?>
                 <?php if ($report['org_email']): ?>
-                <div class="d-flex align-items-center gap-2" style="font-size:0.82rem;">
-                    <i class="fas fa-envelope" style="width:14px;font-size:0.72rem;color:var(--text-muted);"></i>
-                    <span><?= $report['org_email'] ?></span>
-                </div>
+                <div class="show-contact-item"><i class="fas fa-envelope"></i><span><?= $report['org_email'] ?></span></div>
                 <?php endif; ?>
             </div>
         </div>
