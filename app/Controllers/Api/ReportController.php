@@ -7,9 +7,11 @@ use App\Controllers\Controller;
 class ReportController extends Controller {
     public function map(): void {
         $db = Database::getConnection();
+        $userId = \App\Helpers\Session::getUserId();
+        $isCitizen = $userId && \App\Helpers\Rbac::isRole('citizen');
 
         $sql = "SELECT r.id, r.tracking_code, r.title, r.status, r.priority, r.latitude, r.longitude,
-            r.created_at,
+            r.created_at, r.citizen_id,
             c.name as category_name, c.icon as category_icon, c.color as category_color,
             com.name as commune_name
             FROM reports r
@@ -17,10 +19,17 @@ class ReportController extends Controller {
             LEFT JOIN communes com ON r.commune_id = com.id
             WHERE r.latitude IS NOT NULL AND r.longitude IS NOT NULL AND r.deleted_at IS NULL";
 
+        $params = [];
+
+        if ($isCitizen) {
+            $sql .= " AND r.citizen_id = ?";
+            $params[] = $userId;
+        }
+
         $sql .= " ORDER BY r.created_at DESC LIMIT 500";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($params);
         $this->json($stmt->fetchAll());
     }
 
