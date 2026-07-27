@@ -1805,6 +1805,15 @@ html[dir="rtl"] #page-content-wrapper { margin-left: 0 !important; }
 html[dir="rtl"] .sidebar-nav .nav-link:hover { transform: translateX(-4px); }
 
 /* ============ REPORT SHOW — BANNER ============ */
+.c-official-banner {
+    border-radius: 16px; overflow: hidden; position: relative;
+    margin-bottom: 1.25rem;
+}
+.c-official-banner .banner-flag { height: 6px; display: flex; }
+.c-official-banner .banner-flag-green { flex: 2; background: #006233; }
+.c-official-banner .banner-flag-white { flex: 1; background: #fff; }
+.c-official-banner .banner-flag-red { flex: 1; background: #D21034; }
+.c-official-banner .banner-content { padding: 20px; text-align: left; }
 .show-banner-meta { background: rgba(0,0,0,0.25); backdrop-filter: blur(8px); padding: 10px 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .show-banner-meta-group { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .show-banner-meta-item { display: flex; align-items: center; gap: 5px; color: rgba(255,255,255,0.85); font-size: 11px; font-weight: 700; }
