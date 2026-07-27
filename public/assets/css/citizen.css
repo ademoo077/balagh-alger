@@ -1514,3 +1514,60 @@ body {
     .c-container .btn { padding: 9px 14px; font-size: 0.78rem; }
     .c-container .btn-lg { padding: 12px 22px; font-size: 0.88rem; }
 }
+
+/* ============ LIGHTBOX ============ */
+.balagh-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0,0,0,0.92);
+    backdrop-filter: blur(12px);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    animation: lbFadeIn 0.25s ease;
+}
+.balagh-lightbox.active { display: flex; }
+@keyframes lbFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.balagh-lightbox-img {
+    max-width: 92vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    animation: lbZoomIn 0.3s cubic-bezier(0.22,1,0.36,1);
+    cursor: zoom-out;
+}
+@keyframes lbZoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.balagh-lightbox-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
+    color: #fff; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s; backdrop-filter: blur(8px); z-index: 10001;
+}
+.balagh-lightbox-close:hover { background: rgba(255,255,255,0.2); }
+.balagh-lightbox-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
+    color: #fff; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s; backdrop-filter: blur(8px);
+}
+.balagh-lightbox-nav:hover { background: rgba(255,255,255,0.2); }
+.balagh-lightbox-prev { left: 16px; }
+.balagh-lightbox-next { right: 16px; }
+.balagh-lightbox-counter {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    color: #fff; padding: 5px 16px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 600; backdrop-filter: blur(8px);
+}
+.balagh-lightbox-caption {
+    position: absolute; bottom: 52px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.8); font-size: 0.82rem; text-align: center;
+    max-width: 80vw; text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}

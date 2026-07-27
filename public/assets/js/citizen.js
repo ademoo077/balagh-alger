@@ -187,6 +187,76 @@
     document.addEventListener('DOMContentLoaded', function() {
         initScrollAnimations();
         animateCounters();
+        initLightbox();
     });
+
+    // Lightbox for citizen gallery images
+    function initLightbox() {
+        var lb = document.createElement('div');
+        lb.className = 'balagh-lightbox';
+        lb.innerHTML = '<button class="balagh-lightbox-close" title="Fermer"><i class="fas fa-times"></i></button>' +
+            '<button class="balagh-lightbox-nav balagh-lightbox-prev" title="Précédent"><i class="fas fa-chevron-left"></i></button>' +
+            '<button class="balagh-lightbox-nav balagh-lightbox-next" title="Suivant"><i class="fas fa-chevron-right"></i></button>' +
+            '<div class="balagh-lightbox-caption"></div>' +
+            '<div class="balagh-lightbox-counter"></div>' +
+            '<img class="balagh-lightbox-img" src="" alt="">';
+        document.body.appendChild(lb);
+
+        var img = lb.querySelector('.balagh-lightbox-img');
+        var counter = lb.querySelector('.balagh-lightbox-counter');
+        var caption = lb.querySelector('.balagh-lightbox-caption');
+        var items = [];
+        var currentIdx = 0;
+
+        function showImage() {
+            if (!items[currentIdx]) return;
+            img.src = items[currentIdx].src;
+            caption.textContent = items[currentIdx].caption || '';
+            counter.textContent = (currentIdx + 1) + ' / ' + items.length;
+            lb.querySelector('.balagh-lightbox-prev').style.display = items.length > 1 ? 'flex' : 'none';
+            lb.querySelector('.balagh-lightbox-next').style.display = items.length > 1 ? 'flex' : 'none';
+        }
+
+        function openLb(idx) {
+            items = [];
+            document.querySelectorAll('.show-gallery-item, .c-gallery-item, .ba-card').forEach(function(el) {
+                var a = el.querySelector('a[href]');
+                if (a && /\.(jpg|jpeg|png|gif|webp|svg)/i.test(a.href)) {
+                    items.push({ src: a.href, caption: (el.querySelector('.gallery-overlay span') || el.querySelector('img') || {}).alt || '' });
+                }
+            });
+            if (!items.length) return;
+            currentIdx = idx < items.length ? idx : 0;
+            showImage();
+            lb.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLb() { lb.classList.remove('active'); document.body.style.overflow = ''; }
+
+        lb.querySelector('.balagh-lightbox-close').addEventListener('click', closeLb);
+        img.addEventListener('click', closeLb);
+        lb.addEventListener('click', function(e) { if (e.target === lb) closeLb(); });
+        lb.querySelector('.balagh-lightbox-prev').addEventListener('click', function(e) { e.stopPropagation(); currentIdx = (currentIdx - 1 + items.length) % items.length; showImage(); });
+        lb.querySelector('.balagh-lightbox-next').addEventListener('click', function(e) { e.stopPropagation(); currentIdx = (currentIdx + 1) % items.length; showImage(); });
+        document.addEventListener('keydown', function(e) {
+            if (!lb.classList.contains('active')) return;
+            if (e.key === 'Escape') closeLb();
+            else if (e.key === 'ArrowLeft') { currentIdx = (currentIdx - 1 + items.length) % items.length; showImage(); }
+            else if (e.key === 'ArrowRight') { currentIdx = (currentIdx + 1) % items.length; showImage(); }
+        });
+
+        document.addEventListener('click', function(e) {
+            var item = e.target.closest('.show-gallery-item, .c-gallery-item, .ba-card');
+            if (item && !item.querySelector('video')) {
+                e.preventDefault();
+                var siblings = Array.from(item.parentElement.children).filter(function(el) {
+                    return el.querySelector('a[href]') && !el.querySelector('video') && /\.(jpg|jpeg|png|gif|webp|svg)/i.test(el.querySelector('a[href]').href);
+                });
+                var idx = siblings.indexOf(item);
+                openLb(idx >= 0 ? idx : 0);
+            }
+        });
+    }
 
 })();

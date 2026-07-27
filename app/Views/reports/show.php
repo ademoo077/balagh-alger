@@ -162,7 +162,7 @@ $wfSteps = [
                             <source src="/uploads/reports/<?= htmlspecialchars($img['filename']) ?>" type="<?= htmlspecialchars($img['mime_type']) ?>">
                         </video>
                         <?php else: ?>
-                        <a href="/uploads/reports/<?= htmlspecialchars($img['filename']) ?>" target="_blank">
+                        <a href="/uploads/reports/<?= htmlspecialchars($img['filename']) ?>">
                             <img src="/uploads/reports/<?= htmlspecialchars($img['filename']) ?>" alt="<?= htmlspecialchars($img['original_name']) ?>" loading="lazy">
                         </a>
                         <?php endif; ?>
@@ -208,7 +208,7 @@ $wfSteps = [
                         <div class="show-gallery">
                             <?php foreach ($images as $img): ?>
                             <div class="show-gallery-item" style="aspect-ratio:1;">
-                                <a href="/uploads/reports/<?= htmlspecialchars($img['filename']) ?>" target="_blank">
+                                <a href="/uploads/reports/<?= htmlspecialchars($img['filename']) ?>">
                                     <img src="/uploads/reports/<?= htmlspecialchars($img['filename']) ?>" alt="" loading="lazy">
                                 </a>
                             </div>
@@ -220,7 +220,7 @@ $wfSteps = [
                         <div class="show-gallery">
                             <?php foreach ($grouped['after'] as $p): ?>
                             <div class="show-gallery-item" style="aspect-ratio:1;">
-                                <a href="/uploads/interventions/<?= $p['report_id'] ?>/<?= htmlspecialchars($p['filename']) ?>" target="_blank">
+                                <a href="/uploads/interventions/<?= $p['report_id'] ?>/<?= htmlspecialchars($p['filename']) ?>">
                                     <img src="/uploads/interventions/<?= $p['report_id'] ?>/<?= htmlspecialchars($p['filename']) ?>" alt="" loading="lazy">
                                 </a>
                             </div>
@@ -236,7 +236,7 @@ $wfSteps = [
                         <div class="show-gallery">
                             <?php foreach ($photos as $p): ?>
                             <div class="show-gallery-item">
-                                <a href="/uploads/interventions/<?= $p['report_id'] ?>/<?= htmlspecialchars($p['filename']) ?>" target="_blank">
+                                <a href="/uploads/interventions/<?= $p['report_id'] ?>/<?= htmlspecialchars($p['filename']) ?>">
                                     <img src="/uploads/interventions/<?= $p['report_id'] ?>/<?= htmlspecialchars($p['filename']) ?>" alt="" loading="lazy">
                                 </a>
                                 <?php if (!empty($p['caption'])): ?>

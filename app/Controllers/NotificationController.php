@@ -9,6 +9,15 @@ class NotificationController extends Controller {
     public function index(): void {
         $this->auth();
         $userId = Session::getUserId();
+
+        if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+            $notifications = Database::getConnection()->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 8");
+            $notifications->execute([$userId]);
+            $notifications = $notifications->fetchAll();
+            require VIEW_PATH . '/notifications/_dropdown_items.php';
+            exit;
+        }
+
         $notifications = Database::getConnection()->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50");
         $notifications->execute([$userId]);
         $notifications = $notifications->fetchAll();

@@ -372,27 +372,248 @@ document.addEventListener('DOMContentLoaded', function() {
         requestAnimationFrame(step);
     }
 
-    // ============ NOTIFICATION POLLING ============
+    // ============ LIGHTBOX ============
     (function() {
+        var lb = document.createElement('div');
+        lb.className = 'balagh-lightbox';
+        lb.innerHTML = '<button class="balagh-lightbox-close" title="Fermer"><i class="fas fa-times"></i></button>' +
+            '<button class="balagh-lightbox-nav balagh-lightbox-prev" title="Précédent"><i class="fas fa-chevron-left"></i></button>' +
+            '<button class="balagh-lightbox-nav balagh-lightbox-next" title="Suivant"><i class="fas fa-chevron-right"></i></button>' +
+            '<div class="balagh-lightbox-caption"></div>' +
+            '<div class="balagh-lightbox-counter"></div>' +
+            '<img class="balagh-lightbox-img" src="" alt="">';
+        document.body.appendChild(lb);
+
+        var img = lb.querySelector('.balagh-lightbox-img');
+        var counter = lb.querySelector('.balagh-lightbox-counter');
+        var caption = lb.querySelector('.balagh-lightbox-caption');
+        var items = [];
+        var currentIdx = 0;
+
+        function openLightbox(index) {
+            items = [];
+            document.querySelectorAll('.show-gallery-item, .ba-lightbox-trigger').forEach(function(el) {
+                var link = el.querySelector('a[href]');
+                if (link && /\.(jpg|jpeg|png|gif|webp|svg)/i.test(link.href)) {
+                    items.push({ src: link.href, caption: (el.querySelector('.gallery-overlay span') || el.querySelector('img') || {}).alt || '' });
+                }
+            });
+            if (items.length === 0) return;
+            currentIdx = index < items.length ? index : 0;
+            showImage();
+            lb.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function showImage() {
+            if (!items[currentIdx]) return;
+            img.src = items[currentIdx].src;
+            img.alt = items[currentIdx].caption;
+            caption.textContent = items[currentIdx].caption || '';
+            counter.textContent = (currentIdx + 1) + ' / ' + items.length;
+            lb.querySelector('.balagh-lightbox-prev').style.display = items.length > 1 ? 'flex' : 'none';
+            lb.querySelector('.balagh-lightbox-next').style.display = items.length > 1 ? 'flex' : 'none';
+        }
+
+        function closeLightbox() {
+            lb.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        lb.querySelector('.balagh-lightbox-close').addEventListener('click', closeLightbox);
+        img.addEventListener('click', closeLightbox);
+        lb.addEventListener('click', function(e) { if (e.target === lb) closeLightbox(); });
+        lb.querySelector('.balagh-lightbox-prev').addEventListener('click', function(e) { e.stopPropagation(); currentIdx = (currentIdx - 1 + items.length) % items.length; showImage(); });
+        lb.querySelector('.balagh-lightbox-next').addEventListener('click', function(e) { e.stopPropagation(); currentIdx = (currentIdx + 1) % items.length; showImage(); });
+
+        document.addEventListener('keydown', function(e) {
+            if (!lb.classList.contains('active')) return;
+            if (e.key === 'Escape') closeLightbox();
+            else if (e.key === 'ArrowLeft') { currentIdx = (currentIdx - 1 + items.length) % items.length; showImage(); }
+            else if (e.key === 'ArrowRight') { currentIdx = (currentIdx + 1) % items.length; showImage(); }
+        });
+
+        document.addEventListener('click', function(e) {
+            var galleryItem = e.target.closest('.show-gallery-item');
+            if (galleryItem && !galleryItem.querySelector('video')) {
+                e.preventDefault();
+                var allItems = Array.from(galleryItem.parentElement.querySelectorAll('.show-gallery-item'));
+                var idx = allItems.indexOf(galleryItem);
+                var galleryItems = [];
+                allItems.forEach(function(el) {
+                    var link = el.querySelector('a[href]');
+                    if (link && /\.(jpg|jpeg|png|gif|webp|svg)/i.test(link.href)) {
+                        galleryItems.push(el);
+                    }
+                });
+                var realIdx = galleryItems.indexOf(galleryItem);
+                openLightbox(realIdx >= 0 ? realIdx : 0);
+            }
+        });
+
+        window.BalaghLightbox = { open: openLightbox, close: closeLightbox };
+    })();
+
+    // ============ NOTIFICATION DROPDOWN ============
+    (function() {
+        var toggle = document.getElementById('notifDropdownToggle');
+        var dropdown = document.getElementById('notifDropdown');
+        var list = document.getElementById('notifDropdownList');
         var badge = document.getElementById('notifBadge');
-        if (!badge) return;
+        if (!toggle || !dropdown) return;
+
+        var isOpen = false;
+        var notifTypes = {
+            'report_assigned': { icon: 'fas fa-user-check', color: 'var(--accent)' },
+            'report_status': { icon: 'fas fa-exchange-alt', color: 'var(--cyan)' },
+            'report_comment': { icon: 'fas fa-comment', color: 'var(--amber)' },
+            'report_created': { icon: 'fas fa-plus-circle', color: 'var(--green)' },
+            'default': { icon: 'fas fa-bell', color: 'var(--accent)' }
+        };
+
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            isOpen = !isOpen;
+            dropdown.classList.toggle('show', isOpen);
+            if (isOpen) loadNotifications();
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)) {
+                isOpen = false;
+                dropdown.classList.remove('show');
+            }
+        });
+
+        function loadNotifications() {
+            fetch('/api/notifications/count', { credentials: 'same-origin' })
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(data) {
+                    if (data) updateBadge(data.count || 0);
+                });
+            fetch('/notifications?ajax=1', { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.ok ? r.text() : null; })
+                .then(function(html) {
+                    if (html && list) {
+                        list.innerHTML = html;
+                        bindNotifClicks();
+                    }
+                })
+                .catch(function() {});
+        }
+
+        function bindNotifClicks() {
+            list.querySelectorAll('.notif-dropdown-item[data-id]').forEach(function(item) {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var id = this.getAttribute('data-id');
+                    var url = this.getAttribute('href');
+                    fetch('/notifications/' + id + '/read', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: '_token=' + encodeURIComponent(csrfToken)
+                    }).then(function() {
+                        if (url) window.location.href = url;
+                    });
+                });
+            });
+        }
+
+        function updateBadge(count) {
+            if (!badge) return;
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
         function pollNotifications() {
             fetch('/api/notifications/count', { credentials: 'same-origin' })
                 .then(function(r) { return r.ok ? r.json() : null; })
                 .then(function(data) {
-                    if (!data) return;
-                    var count = data.count || 0;
-                    if (count > 0) {
-                        badge.textContent = count > 99 ? '99+' : count;
-                        badge.style.display = 'flex';
-                    } else {
-                        badge.style.display = 'none';
-                    }
+                    if (data) updateBadge(data.count || 0);
                 })
                 .catch(function() {});
         }
         pollNotifications();
         setInterval(pollNotifications, 30000);
+    })();
+
+    // ============ THEME CUSTOMIZER ============
+    (function() {
+        var toggleBtn = document.getElementById('themeCustomizerToggle');
+        var panel = document.getElementById('themeCustomizerPanel');
+        if (!toggleBtn || !panel) return;
+
+        var accentColors = [
+            { name: 'Indigo', value: '#6366f1', hover: '#4f46e5', surface: 'rgba(99,102,241,0.1)' },
+            { name: 'Blue', value: '#3b82f6', hover: '#2563eb', surface: 'rgba(59,130,246,0.1)' },
+            { name: 'Cyan', value: '#0891b2', hover: '#0e7490', surface: 'rgba(8,145,178,0.1)' },
+            { name: 'Emerald', value: '#10b981', hover: '#059669', surface: 'rgba(16,185,129,0.1)' },
+            { name: 'Teal', value: '#14b8a6', hover: '#0d9488', surface: 'rgba(20,184,166,0.1)' },
+            { name: 'Amber', value: '#f59e0b', hover: '#d97706', surface: 'rgba(245,158,11,0.1)' },
+            { name: 'Orange', value: '#f97316', hover: '#ea580c', surface: 'rgba(249,115,22,0.1)' },
+            { name: 'Rose', value: '#f43f5e', hover: '#e11d48', surface: 'rgba(244,63,94,0.1)' },
+            { name: 'Purple', value: '#a855f7', hover: '#9333ea', surface: 'rgba(168,85,247,0.1)' },
+            { name: 'Slate', value: '#64748b', hover: '#475569', surface: 'rgba(100,116,139,0.1)' }
+        ];
+
+        var savedAccent = localStorage.getItem('balagh-accent') || '#6366f1';
+        applyAccent(savedAccent);
+
+        toggleBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            panel.classList.toggle('show');
+        });
+        document.addEventListener('click', function(e) {
+            if (!panel.contains(e.target) && e.target !== toggleBtn) panel.classList.remove('show');
+        });
+
+        var grid = panel.querySelector('.theme-color-grid');
+        if (grid) {
+            accentColors.forEach(function(c) {
+                var swatch = document.createElement('button');
+                swatch.className = 'theme-color-swatch' + (savedAccent === c.value ? ' active' : '');
+                swatch.style.background = c.value;
+                swatch.title = c.name;
+                swatch.setAttribute('data-color', c.value);
+                swatch.addEventListener('click', function() {
+                    grid.querySelectorAll('.theme-color-swatch').forEach(function(s) { s.classList.remove('active'); });
+                    swatch.classList.add('active');
+                    applyAccent(c.value);
+                    localStorage.setItem('balagh-accent', c.value);
+                });
+                grid.appendChild(swatch);
+            });
+        }
+
+        var resetBtn = panel.querySelector('.theme-reset-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                applyAccent('#6366f1');
+                localStorage.removeItem('balagh-accent');
+                grid.querySelectorAll('.theme-color-swatch').forEach(function(s) {
+                    s.classList.toggle('active', s.getAttribute('data-color') === '#6366f1');
+                });
+            });
+        }
+
+        function applyAccent(hex) {
+            var r = parseInt(hex.slice(1,3), 16);
+            var g = parseInt(hex.slice(3,5), 16);
+            var b = parseInt(hex.slice(5,7), 16);
+            document.documentElement.style.setProperty('--accent', hex);
+            document.documentElement.style.setProperty('--accent-hover', hex);
+            document.documentElement.style.setProperty('--accent-light', hex + 'cc');
+            document.documentElement.style.setProperty('--accent-surface', 'rgba(' + r + ',' + g + ',' + b + ',0.1)');
+            document.documentElement.style.setProperty('--accent-glow', 'rgba(' + r + ',' + g + ',' + b + ',0.15)');
+            document.documentElement.style.setProperty('--bs-primary', hex);
+            var toggle = document.getElementById('themeCustomizerToggle');
+            if (toggle) toggle.style.background = hex;
+        }
     })();
 
     // ============ COMMAND PALETTE (Ctrl+K) ============

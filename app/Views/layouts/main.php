@@ -286,10 +286,24 @@ $csrfToken = $csrfToken ?? (\App\Helpers\Session::get('csrf_token') ?? \App\Help
                         <i class="fas fa-moon icon-moon"></i>
                     </button>
                     <?php if (\App\Helpers\Session::isAuthenticated()): ?>
-                    <a href="/notifications" class="icon-btn" style="position:relative;">
-                        <i class="fas fa-bell"></i>
-                        <span id="notifBadge" class="nav-notif-badge" style="display:<?= ($unread ?? 0) > 0 ? 'flex' : 'none' ?>;"><?= $unread ?? 0 ?></span>
-                    </a>
+                    <div style="position:relative;">
+                        <button class="icon-btn" id="notifDropdownToggle" style="position:relative;background:none;border:none;cursor:pointer;padding:6px;color:var(--text-secondary);">
+                            <i class="fas fa-bell" style="font-size:1rem;"></i>
+                            <span id="notifBadge" class="nav-notif-badge" style="display:<?= ($unread ?? 0) > 0 ? 'flex' : 'none' ?>;"><?= $unread ?? 0 ?></span>
+                        </button>
+                        <div class="notif-dropdown" id="notifDropdown">
+                            <div class="notif-dropdown-header">
+                                <h6><i class="fas fa-bell me-1" style="color:var(--accent);"></i> <?= __('nav.notifications') ?></h6>
+                                <form method="POST" action="/notifications/read-all" class="d-inline"><input type="hidden" name="_token" value="<?= $csrfToken ?>"><button type="submit" class="btn btn-link p-0" style="font-size:0.72rem;font-weight:600;color:var(--accent);text-decoration:none;"><?= __('notifications.mark_all_read') ?></button></form>
+                            </div>
+                            <div class="notif-dropdown-list" id="notifDropdownList">
+                                <div class="notif-dropdown-empty"><i class="fas fa-bell-slash d-block mb-2" style="font-size:1.2rem;opacity:0.3;"></i><?= __('notifications.none') ?></div>
+                            </div>
+                            <div class="notif-dropdown-footer">
+                                <a href="/notifications"><i class="fas fa-list-ul me-1"></i><?= __('nav.notifications') ?></a>
+                            </div>
+                        </div>
+                    </div>
                     <div class="dropdown">
                         <a href="#" class="user-menu dropdown-toggle" data-bs-toggle="dropdown">
                             <?php $navAvatar = \App\Helpers\Session::getAvatar(); ?>
@@ -405,5 +419,16 @@ $csrfToken = $csrfToken ?? (\App\Helpers\Session::get('csrf_token') ?? \App\Help
         }
     };
     </script>
+
+    <!-- Theme Customizer -->
+    <button class="theme-customizer-toggle" id="themeCustomizerToggle" title="Personnaliser le thème">
+        <i class="fas fa-palette"></i>
+    </button>
+    <div class="theme-customizer-panel" id="themeCustomizerPanel">
+        <h6><i class="fas fa-palette me-1" style="color:var(--accent);"></i> <?= __('nav.change_theme') ?></h6>
+        <div class="theme-section-label">Couleur d'accent</div>
+        <div class="theme-color-grid"></div>
+        <button class="theme-reset-btn"><i class="fas fa-rotate-left me-1"></i> Réinitialiser</button>
+    </div>
 </body>
 </html>
