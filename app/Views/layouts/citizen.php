@@ -34,6 +34,11 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
 </head>
 <body>
 
+    <!-- Offline Banner -->
+    <div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;text-align:center;padding:8px 16px;font-size:0.8rem;font-weight:700;letter-spacing:0.02em;">
+        <i class="fas fa-wifi-slash" style="margin-right:6px;"></i> Vous êtes hors ligne — les envois seront retardés
+    </div>
+
     <!-- Header -->
     <header class="c-header">
         <a href="/home" class="c-header-brand">
@@ -113,14 +118,60 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
     <!-- Toast -->
     <div class="c-toast" id="cToast"></div>
 
+    <!-- Chatbot Overlay -->
+    <div class="c-chat-overlay" id="chatOverlay"></div>
+
+    <!-- Chatbot FAB -->
+    <button class="c-chat-fab" id="chatFab" title="<?= __('chatbot.title') ?>">
+        <i class="fas fa-comment-dots"></i>
+    </button>
+
+    <!-- Chatbot Panel -->
+    <div class="c-chat-panel" id="chatPanel">
+        <div class="c-chat-header">
+            <div class="c-chat-header-info">
+                <div class="c-chat-avatar"><i class="fas fa-robot"></i></div>
+                <div>
+                    <div class="c-chat-title"><?= __('chatbot.title') ?></div>
+                    <div class="c-chat-status"><?= __('chatbot.online') ?></div>
+                </div>
+            </div>
+            <button class="c-chat-close" id="chatClose"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="c-chat-messages" id="chatMessages"></div>
+        <div class="c-chat-quick" id="chatQuickActions"></div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/assets/js/i18n.js"></script>
     <script src="/assets/js/citizen.js"></script>
     <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(function(e) {});
+        navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            window.__swReg = reg;
+            // Listen for sync complete messages
+            navigator.serviceWorker.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'SYNC_COMPLETE') {
+                    if (typeof CToast !== 'undefined') {
+                        CToast.show('Vos signalements hors ligne ont été envoyés !', 'success');
+                    }
+                }
+            });
+        }).catch(function(e) {});
     }
+    // Offline/online banner
+    (function() {
+        var banner = document.getElementById('offlineBanner');
+        if (!banner) return;
+        function update() {
+            banner.style.display = navigator.onLine ? 'none' : 'block';
+            document.body.style.paddingTop = navigator.onLine ? '' : 'calc(var(--c-header-height) + 36px)';
+        }
+        window.addEventListener('online', update);
+        window.addEventListener('offline', update);
+        update();
+    })();
     window.BalaghPush = {
         vapidPublicKey: '<?= defined('VAPID_PUBLIC') ? VAPID_PUBLIC : '' ?>',
         subscribe: function() {

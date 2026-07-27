@@ -439,6 +439,17 @@ $wfSteps = [
                     <a href="/reports/<?= $report['id'] ?>/pdf" class="btn btn-sm btn-outline-secondary flex-fill" style="border-radius:8px;"><i class="fas fa-file-pdf me-1"></i> PDF</a>
                     <a href="javascript:window.print()" class="btn btn-sm btn-outline-secondary flex-fill" style="border-radius:8px;"><i class="fas fa-print me-1"></i> <?= __('reports.print') ?></a>
                 </div>
+
+                <!-- Share -->
+                <div style="margin-top:10px;">
+                    <div class="d-flex gap-2 mb-2">
+                        <a href="/partager/<?= $report['tracking_code'] ?>" target="_blank" class="btn btn-sm btn-outline-primary flex-fill" style="border-radius:8px;"><i class="fas fa-share-nodes me-1"></i> Partager</a>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="https://wa.me/?text=<?= urlencode($report['title'] . "\n" . ($report['tracking_code'] ?? '') . "\n" . \App\Helpers\Router::baseUrl() . '/partager/' . $report['tracking_code']) ?>" target="_blank" class="btn btn-sm flex-fill" style="border-radius:8px;background:#25d366;color:#fff;font-size:0.72rem;"><i class="fab fa-whatsapp me-1"></i> WhatsApp</a>
+                        <button type="button" class="btn btn-sm btn-outline-primary flex-fill" style="border-radius:8px;font-size:0.72rem;" onclick="navigator.clipboard.writeText('<?= \App\Helpers\Router::baseUrl() ?>/partager/<?= $report['tracking_code'] ?>');this.innerHTML='<i class=\'fas fa-check\'></i> Copié';setTimeout(()=>this.innerHTML='<i class=\'fas fa-link\'></i> Lien',1500);"><i class="fas fa-link me-1"></i> Lien</button>
+                    </div>
+                </div>
             </div>
         </div>
         <?php endif; ?>

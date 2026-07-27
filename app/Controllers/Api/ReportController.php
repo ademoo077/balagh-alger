@@ -6,8 +6,22 @@ use App\Controllers\Controller;
 
 class ReportController extends Controller {
     public function map(): void {
-        $reports = Database::getConnection()->query("SELECT r.id, r.tracking_code, r.title, r.status, r.priority, r.latitude, r.longitude, c.name as category_name, c.icon as category_icon, c.color as category_color FROM reports r JOIN categories c ON r.category_id = c.id WHERE r.latitude IS NOT NULL AND r.longitude IS NOT NULL AND r.deleted_at IS NULL ORDER BY r.created_at DESC LIMIT 500")->fetchAll();
-        $this->json($reports);
+        $db = Database::getConnection();
+
+        $sql = "SELECT r.id, r.tracking_code, r.title, r.status, r.priority, r.latitude, r.longitude,
+            r.created_at,
+            c.name as category_name, c.icon as category_icon, c.color as category_color,
+            com.name as commune_name
+            FROM reports r
+            JOIN categories c ON r.category_id = c.id
+            LEFT JOIN communes com ON r.commune_id = com.id
+            WHERE r.latitude IS NOT NULL AND r.longitude IS NOT NULL AND r.deleted_at IS NULL";
+
+        $sql .= " ORDER BY r.created_at DESC LIMIT 500";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
+        $this->json($stmt->fetchAll());
     }
 
     public function checkDuplicate(): void {

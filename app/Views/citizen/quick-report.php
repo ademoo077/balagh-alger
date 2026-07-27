@@ -206,15 +206,20 @@ document.addEventListener('DOMContentLoaded', function() {
             body: formData
         }).then(function(r) { return r.json(); }).then(function(data) {
             if (data.success) {
-                CToast.show('Signalement envoyé !', 'success');
-                setTimeout(function() { window.location.href = '/reports/' + (data.report_id || ''); }, 800);
+                if (data.offline) {
+                    CToast.show(data.message || 'Signalement enregistré hors ligne', 'success');
+                    setTimeout(function() { window.location.href = '/reports'; }, 1200);
+                } else {
+                    CToast.show('Signalement envoyé !', 'success');
+                    setTimeout(function() { window.location.href = '/reports/' + (data.report_id || ''); }, 800);
+                }
             } else {
                 CToast.show(data.message || 'Erreur lors de l\'envoi', 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-paper-plane"></i> Envoyer le signalement';
             }
         }).catch(function() {
-            CToast.show('Erreur réseau', 'error');
+            CToast.show('Réseau indisponible. Réessayez plus tard.', 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-paper-plane"></i> Envoyer le signalement';
         });

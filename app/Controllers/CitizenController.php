@@ -23,6 +23,17 @@ class CitizenController extends Controller {
 
         $categories = $db->query("SELECT id, name, icon, color FROM categories WHERE is_active = 1 ORDER BY name")->fetchAll();
 
+        // Category breakdown for visual bar
+        $catBreakdown = $db->prepare("
+            SELECT c.name, c.icon, c.color, COUNT(*) as cnt
+            FROM reports r JOIN categories c ON r.category_id = c.id
+            WHERE r.citizen_id = ? AND r.deleted_at IS NULL
+            GROUP BY c.id ORDER BY cnt DESC
+        ");
+        $catBreakdown->execute([$userId]);
+        $catBreakdown = $catBreakdown->fetchAll();
+
+        // Map reports
         $stmt = $db->prepare("
             SELECT r.id, r.tracking_code, r.title, r.status, r.priority, r.latitude, r.longitude, r.created_at,
                    c.name as category_name, c.icon as category_icon, c.color as category_color,
@@ -37,6 +48,7 @@ class CitizenController extends Controller {
         $stmt->execute([$userId]);
         $mapReports = $stmt->fetchAll();
 
+        // Recent reports
         $stmt = $db->prepare("
             SELECT r.id, r.tracking_code, r.title, r.status, r.priority, r.created_at,
                    c.name as category_name, c.icon as category_icon, c.color as category_color,
@@ -51,9 +63,13 @@ class CitizenController extends Controller {
         $recentReports = $stmt->fetchAll();
 
         $stats = \App\Helpers\Badge::getUserStats($userId);
+        $userLevel = \App\Helpers\Gamification::getLevel($userId);
+        $recentActivity = \App\Helpers\Gamification::getRecentActivity($userId, 5);
+        $userName = Session::getUserName();
 
         $this->view('citizen/home', compact(
-            'total', 'inProgress', 'resolved', 'categories', 'mapReports', 'recentReports', 'stats'
+            'total', 'inProgress', 'resolved', 'categories', 'mapReports', 'recentReports',
+            'stats', 'userLevel', 'recentActivity', 'userName', 'catBreakdown'
         ));
     }
 
@@ -204,6 +220,19 @@ class CitizenController extends Controller {
         $this->auth();
         if (!Rbac::isRole('citizen')) { $this->redirect('/dashboard'); return; }
         $this->view('citizen/leaderboard', []);
+    }
+
+    public function badges(): void {
+        $this->auth();
+        if (!Rbac::isRole('citizen')) { $this->redirect('/dashboard'); return; }
+        $userId = Session::getUserId();
+        $userBadges = \App\Helpers\Badge::getUserBadges($userId);
+        $allBadges = \App\Helpers\Badge::getDefinitions();
+        $userStats = \App\Helpers\Badge::getUserStats($userId);
+        $userLevel = \App\Helpers\Gamification::getLevel($userId);
+        $recentActivity = \App\Helpers\Gamification::getRecentActivity($userId, 10);
+        $earnedKeys = array_column($userBadges, 'badge_key');
+        $this->view('citizen/badges', compact('userBadges', 'allBadges', 'userStats', 'userLevel', 'recentActivity', 'earnedKeys'));
     }
 
     public function map(): void {

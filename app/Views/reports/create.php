@@ -206,6 +206,7 @@
                 <div id="gpsStatus" class="mt-2" style="font-size:0.78rem;color:var(--text-muted);">
                     <i class="fas fa-info-circle me-1"></i> <?= __('report_create.gps_status') ?>
                 </div>
+                <div id="similarReports" class="mt-3" style="display:none;"></div>
             </div>
         </div>
         <div class="d-flex justify-content-between mt-3">
@@ -266,6 +267,19 @@
         </div>
     </div>
 </form>
+
+<style>
+#similarReports .sr-card{border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;background:var(--bg-elevated);transition:border-color 0.2s;}
+#similarReports .sr-card:hover{border-color:var(--accent);}
+#similarReports .sr-title{font-weight:600;font-size:0.85rem;color:var(--text-primary);text-decoration:none;}
+#similarReports .sr-title:hover{color:var(--accent);}
+#similarReports .sr-meta{font-size:0.75rem;color:var(--text-muted);margin-top:4px;}
+#similarReports .sr-badge{display:inline-block;font-size:0.65rem;padding:2px 8px;border-radius:10px;font-weight:600;}
+#similarReports .sr-distance{font-size:0.72rem;font-weight:600;color:var(--accent);margin-left:auto;}
+#similarReports .sr-header{font-size:0.78rem;font-weight:600;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+#similarReports .sr-none{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:var(--green);display:flex;align-items:center;gap:8px;}
+#similarReports .sr-loading{font-size:0.78rem;color:var(--text-muted);padding:8px 0;}
+</style>
 
 <script>
 (function() {
@@ -629,5 +643,73 @@
             status.style.color = 'var(--red)';
         }, { enableHighAccuracy: true, timeout: 10000 });
     });
+
+    // === Similar Reports (nearby) ===
+    var similarTimer = null;
+    var similarContainer = document.getElementById('similarReports');
+    var statusColors = {pending:'var(--amber)',in_progress:'var(--cyan)',resolved:'var(--green)',closed:'var(--text-muted)',rejected:'var(--red)'};
+    var statusLabels = <?= json_encode(__('statuses')) ?>;
+
+    function formatDistance(m) {
+        return m >= 1000 ? (m / 1000).toFixed(1) + ' km' : Math.round(m) + ' m';
+    }
+
+    function fetchSimilarReports() {
+        var catId = document.getElementById('categorySelect').value;
+        var lat = document.getElementById('latitude').value;
+        var lng = document.getElementById('longitude').value;
+        if (!catId || !lat || !lng) { similarContainer.style.display = 'none'; return; }
+
+        similarContainer.style.display = 'block';
+        similarContainer.innerHTML = '<div class="sr-loading"><i class="fas fa-spinner fa-spin me-1"></i> <?= addslashes(__('report_create.searching_similar')) ?></div>';
+
+        var url = '/api/reports/nearby?lat=' + encodeURIComponent(lat) + '&lng=' + encodeURIComponent(lng) + '&category_id=' + encodeURIComponent(catId);
+        fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.count === 0) {
+                    similarContainer.innerHTML = '<div class="sr-none"><i class="fas fa-check-circle"></i> <?= addslashes(__('report_create.no_similar')) ?></div>';
+                    return;
+                }
+                var html = '<div class="sr-header"><i class="fas fa-clone"></i> <?= addslashes(__('report_create.similar_found')) ?> (' + data.count + ')</div>';
+                data.reports.forEach(function(r) {
+                    var sc = statusColors[r.status] || 'var(--text-muted)';
+                    var sl = (typeof statusLabels === 'object' && statusLabels[r.status]) ? statusLabels[r.status] : r.status;
+                    var dist = r.distance_meters != null ? formatDistance(r.distance_meters) : '';
+                    html += '<div class="sr-card">' +
+                        '<div style="display:flex;align-items:center;gap:8px;">' +
+                        '<a href="/reports/' + r.id + '" class="sr-title" target="_blank">' + (r.title || '—') + '</a>' +
+                        '<span class="sr-badge" style="background:' + sc + '22;color:' + sc + ';">' + sl + '</span>' +
+                        '<span class="sr-distance"><i class="fas fa-location-dot me-1"></i>' + dist + '</span>' +
+                        '</div>' +
+                        '</div>';
+                });
+                similarContainer.innerHTML = html;
+            })
+            .catch(function() {
+                similarContainer.innerHTML = '';
+                similarContainer.style.display = 'none';
+            });
+    }
+
+    function debounceSimilar() {
+        clearTimeout(similarTimer);
+        similarTimer = setTimeout(fetchSimilarReports, 300);
+    }
+
+    document.getElementById('categorySelect').addEventListener('change', debounceSimilar);
+    document.getElementById('latitude').addEventListener('input', debounceSimilar);
+    document.getElementById('longitude').addEventListener('input', debounceSimilar);
+
+    // Intercept programmatic value changes (map click, GPS button)
+    function interceptValue(el) {
+        var descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+        Object.defineProperty(el, 'value', {
+            get: function() { return descriptor.get.call(this); },
+            set: function(v) { descriptor.set.call(this, v); debounceSimilar(); }
+        });
+    }
+    interceptValue(document.getElementById('latitude'));
+    interceptValue(document.getElementById('longitude'));
 })();
 </script>

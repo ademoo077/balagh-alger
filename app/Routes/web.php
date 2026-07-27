@@ -18,6 +18,9 @@ return [
     // Public tracking
     'GET /suivi' => ['TrackingController', 'index'],
     'GET /suivi/{code}' => ['TrackingController', 'show'],
+
+    // Public share
+    'GET /partager/{code}' => ['ShareController', 'show'],
     
     // Dashboard
     'GET /dashboard' => ['DashboardController', 'index'],
@@ -143,6 +146,7 @@ return [
     'GET /api/reports/check-duplicate' => ['App\Controllers\Api\ReportController', 'checkDuplicate'],
     'GET /api/reports/search' => ['App\Controllers\Api\ReportController', 'search'],
     'GET /api/reports/similar' => ['App\Controllers\Api\ReportController', 'similar'],
+    'GET /api/reports/nearby' => ['App\Controllers\Api\NearbyController', 'index'],
     'GET /api/subcategories/{categoryId}' => ['App\Controllers\Api\CategoryController', 'subcategories'],
     'POST /api/set-lang' => ['App\Controllers\Api\LangController', 'set'],
     'POST /api/push/subscribe' => ['App\Controllers\Api\PushController', 'subscribe'],
@@ -162,6 +166,7 @@ return [
     'POST /feed/{id}/like' => ['FeedController', 'like'],
     'POST /feed/{id}/comment' => ['FeedController', 'comment'],
     'GET /leaderboard' => ['CitizenController', 'leaderboard'],
+    'GET /badges' => ['CitizenController', 'badges'],
     'GET /citizen/map' => ['CitizenController', 'map'],
     'GET /before-after' => ['CitizenController', 'beforeAfter'],
     'GET /my-profile' => ['CitizenController', 'profile'],

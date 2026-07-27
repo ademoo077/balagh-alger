@@ -9,6 +9,7 @@ class NotificationController extends Controller {
     public function index(): void {
         $this->auth();
         $userId = Session::getUserId();
+        $isCitizen = \App\Helpers\Rbac::isRole('citizen');
 
         if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
             $notifications = Database::getConnection()->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 8");
@@ -22,6 +23,13 @@ class NotificationController extends Controller {
         $notifications->execute([$userId]);
         $notifications = $notifications->fetchAll();
         $csrfToken = \App\Helpers\Csrf::generate();
+
+        if ($isCitizen) {
+            $this->layout = 'layouts/citizen';
+            $this->view('notifications/citizen', compact('notifications', 'csrfToken'));
+            return;
+        }
+
         $this->view('notifications/index', compact('notifications', 'csrfToken'));
     }
 

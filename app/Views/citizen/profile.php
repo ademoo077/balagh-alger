@@ -237,6 +237,12 @@ foreach ($badgeDefs as $key => $def):
     <a href="/leaderboard" class="c-btn c-btn-outline c-btn-block" style="margin-bottom:8px;text-decoration:none;color:inherit;">
         <i class="fas fa-trophy"></i> Classement
     </a>
+    <a href="/badges" class="c-btn c-btn-outline c-btn-block" style="margin-bottom:8px;text-decoration:none;color:inherit;">
+        <i class="fas fa-award"></i> Badges & Récompenses
+    </a>
+    <a href="/citizen/map" class="c-btn c-btn-outline c-btn-block" style="margin-bottom:8px;text-decoration:none;color:inherit;">
+        <i class="fas fa-map-location-dot"></i> Carte des signalements
+    </a>
     <a href="/before-after" class="c-btn c-btn-outline c-btn-block" style="margin-bottom:8px;text-decoration:none;color:inherit;">
         <i class="fas fa-images"></i> Avant / Après
     </a>

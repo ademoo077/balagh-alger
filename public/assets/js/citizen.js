@@ -259,4 +259,237 @@
         });
     }
 
+    /* ============================================
+       Chatbot — Citizen Assistant
+       ============================================ */
+    var CBot = {
+        panel: null,
+        fab: null,
+        messages: null,
+        quickEl: null,
+        overlay: null,
+        opened: false,
+        greeted: false,
+        topics: null,
+
+        init: function() {
+            this.panel = document.getElementById('chatPanel');
+            this.fab = document.getElementById('chatFab');
+            this.messages = document.getElementById('chatMessages');
+            this.quickEl = document.getElementById('chatQuickActions');
+            this.overlay = document.getElementById('chatOverlay');
+            if (!this.panel || !this.fab) return;
+
+            this.buildTopics();
+            var self = this;
+
+            this.fab.addEventListener('click', function() { self.toggle(); });
+            document.getElementById('chatClose').addEventListener('click', function() { self.close(); });
+            if (this.overlay) {
+                this.overlay.addEventListener('click', function() { self.close(); });
+            }
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && self.opened) self.close();
+            });
+        },
+
+        buildTopics: function() {
+            var t = (window.__translations && window.__translations.chatbot) || {};
+            this.topics = {
+                welcome: {
+                    text: t.welcome || 'Bienvenue ! Je suis l\'assistant Balagh Alger. Comment puis-je vous aider ?',
+                    quick: [
+                        { label: t.q_how || 'Comment signaler ?', topic: 'how_to_report' },
+                        { label: t.q_track || 'Suivre un signalement', topic: 'track' },
+                        { label: t.q_statuses || 'Les statuts', topic: 'statuses' },
+                        { label: t.q_categories || 'Catégories', topic: 'categories' },
+                        { label: t.q_account || 'Mon compte', topic: 'account' }
+                    ]
+                },
+                how_to_report: {
+                    text: (t.how_intro || 'Créer un signalement est simple ! Voici les étapes :') +
+                        '<br><br>' +
+                        '<span class="step-num">1</span> <strong>' + (t.how_s1 || 'Photo') + '</strong> — ' + (t.how_s1d || 'Prenez une photo du problème.') + '<br><br>' +
+                        '<span class="step-num">2</span> <strong>' + (t.how_s2 || 'Catégorie') + '</strong> — ' + (t.how_s2d || 'Choisissez la catégorie et décrivez le problème.') + '<br><br>' +
+                        '<span class="step-num">3</span> <strong>' + (t.how_s3 || 'Localisation') + '</strong> — ' + (t.how_s3d || 'Géolocalisez le problème sur la carte.') + '<br><br>' +
+                        '<span class="step-num">4</span> <strong>' + (t.how_s4 || 'Envoyer') + '</strong> — ' + (t.how_s4d || 'Validez et c\'est envoyé !') + '<br><br>' +
+                        '<strong>' + (t.how_hint || ' appuyez sur le bouton + en bas pour commencer.') + '</strong>',
+                    quick: [
+                        { label: t.q_track || 'Suivre un signalement', topic: 'track' },
+                        { label: t.q_categories || 'Catégories', topic: 'categories' },
+                        { label: t.q_back || '← Retour', topic: 'welcome' }
+                    ]
+                },
+                track: {
+                    text: t.track_text || 'Après avoir soumis un signalement, vous recevez un <strong>code de suivi</strong> unique (ex: BA-2026-000001).<br><br>Vous pouvez le consulter depuis :<br>• <strong>Mes Signalements</strong> dans votre profil<br>• La page publique <strong>/suivi</strong> (sans compte)<br><br>Vous êtes notifié à chaque étape du traitement.',
+                    quick: [
+                        { label: t.q_statuses || 'Les statuts', topic: 'statuses' },
+                        { label: t.q_how || 'Comment signaler ?', topic: 'how_to_report' },
+                        { label: t.q_back || '← Retour', topic: 'welcome' }
+                    ]
+                },
+                statuses: {
+                    text: t.statuses_intro || 'Voici les étapes de traitement d\'un signalement :',
+                    text2: '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">' +
+                        '<div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-amber);flex-shrink:0;"></span><span style="font-size:0.82rem;"><strong>' + (t.st_submitted || 'Soumis') + '</strong> — ' + (t.st_submitted_d || 'Votre signalement est enregistré.') + '</span></div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-accent);flex-shrink:0;"></span><span style="font-size:0.82rem;"><strong>' + (t.st_acknowledged || 'Pris en compte') + '</strong> — ' + (t.st_acknowledged_d || 'L\'administration a pris connaissance.') + '</span></div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-cyan);flex-shrink:0;"></span><span style="font-size:0.82rem;"><strong>' + (t.st_in_progress || 'En cours') + '</strong> — ' + (t.st_in_progress_d || 'Un agent intervient sur le terrain.') + '</span></div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-amber);flex-shrink:0;"></span><span style="font-size:0.82rem;"><strong>' + (t.st_pending || 'À vérifier') + '</strong> — ' + (t.st_pending_d || 'Les travaux sont en attente de validation.') + '</span></div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-green);flex-shrink:0;"></span><span style="font-size:0.82rem;"><strong>' + (t.st_resolved || 'Résolu') + '</strong> — ' + (t.st_resolved_d || 'Le problème a été corrigé.') + '</span></div>' +
+                        '</div>',
+                    quick: [
+                        { label: t.q_how || 'Comment signaler ?', topic: 'how_to_report' },
+                        { label: t.q_track || 'Suivre', topic: 'track' },
+                        { label: t.q_back || '← Retour', topic: 'welcome' }
+                    ]
+                },
+                categories: {
+                    text: t.cat_intro || 'Vous pouvez signaler ce type de problème :',
+                    text2: '<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">' +
+                        '<div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;"><i class="fas fa-road" style="color:var(--c-accent);width:20px;text-align:center;"></i><strong>' + (t.cat_road || 'Voirie & Routes') + '</strong> — ' + (t.cat_road_d || 'Nids-de-poule, trottoirs cassés') + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;"><i class="fas fa-droplet" style="color:var(--c-cyan);width:20px;text-align:center;"></i><strong>' + (t.cat_water || 'Eau & Assainissement') + '</strong> — ' + (t.cat_water_d || 'Fuites, canalisations') + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;"><i class="fas fa-bolt" style="color:var(--c-amber);width:20px;text-align:center;"></i><strong>' + (t.cat_elec || 'Électricité & Gaz') + '</strong> — ' + (t.cat_elec_d || 'Pannes, câbles dangereux') + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;"><i class="fas fa-trash" style="color:var(--c-red);width:20px;text-align:center;"></i><strong>' + (t.cat_trash || 'Propreté') + '</strong> — ' + (t.cat_trash_d || 'Déchets, décharges sauvages') + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;"><i class="fas fa-lightbulb" style="color:var(--c-green);width:20px;text-align:center;"></i><strong>' + (t.cat_light || 'Éclairage Public') + '</strong> — ' + (t.cat_light_d || 'Lampadaires en panne') + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;"><i class="fas fa-tree" style="color:var(--c-green);width:20px;text-align:center;"></i><strong>' + (t.cat_green || 'Espaces Verts') + '</strong> — ' + (t.cat_green_d || 'Arbres tombés, parcs dégradés') + '</div>' +
+                        '</div>',
+                    quick: [
+                        { label: t.q_how || 'Comment signaler ?', topic: 'how_to_report' },
+                        { label: t.q_track || 'Suivre', topic: 'track' },
+                        { label: t.q_back || '← Retour', topic: 'welcome' }
+                    ]
+                },
+                account: {
+                    text: t.account_text || 'Un <strong>compte gratuit</strong> est nécessaire pour signaler et suivre vos demandes.<br><br>• Cliquez sur <strong>"Créer un compte"</strong> sur la page de connexion<br>• Remplissez votre nom et email<br>• Vous pouvez ensuite vous connecter depuis n\'importe quelle page.<br><br>Votre compte vous permet de recevoir des <strong>notifications</strong> et de suivre vos signalements.',
+                    quick: [
+                        { label: t.q_how || 'Comment signaler ?', topic: 'how_to_report' },
+                        { label: t.q_notif || 'Notifications', topic: 'notifications' },
+                        { label: t.q_back || '← Retour', topic: 'welcome' }
+                    ]
+                },
+                notifications: {
+                    text: t.notif_text || 'Vous recevez des <strong>notifications</strong> automatiques à chaque étape :<br><br>• Quand votre signalement est <strong>pris en compte</strong><br>• Quand un agent <strong>intervient</strong> sur le terrain<br>• Quand le problème est <strong>résolu</strong><br><br>Consultez-les via l\'icône <i class="fas fa-bell"></i> dans le menu.',
+                    quick: [
+                        { label: t.q_track || 'Suivre', topic: 'track' },
+                        { label: t.q_statuses || 'Les statuts', topic: 'statuses' },
+                        { label: t.q_back || '← Retour', topic: 'welcome' }
+                    ]
+                },
+                contact: {
+                    text: t.contact_text || 'Pour toute <strong>question</strong> ou <strong>urgence</strong> :<br><br>• Utilisez ce chat pour comprendre la plateforme<br>• Contactez la <strong>Wilaya d\'Alger</strong> pour les urgences<br>• Vos signalements sont traités par les organismes compétents (SEAAL, Sonelgaz, DTP, etc.)',
+                    quick: [
+                        { label: t.q_how || 'Comment signaler ?', topic: 'how_to_report' },
+                        { label: t.q_back || '← Retour', topic: 'welcome' }
+                    ]
+                }
+            };
+        },
+
+        toggle: function() {
+            if (this.opened) this.close(); else this.open();
+        },
+
+        open: function() {
+            this.opened = true;
+            this.panel.classList.add('open');
+            this.fab.classList.add('open');
+            if (this.overlay) this.overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            this.fab.querySelector('i').className = 'fas fa-times';
+
+            if (!this.greeted) {
+                this.greeted = true;
+                var self = this;
+                setTimeout(function() { self.showTopic('welcome'); }, 300);
+            }
+        },
+
+        close: function() {
+            this.opened = false;
+            this.panel.classList.remove('open');
+            this.fab.classList.remove('open');
+            if (this.overlay) this.overlay.classList.remove('open');
+            document.body.style.overflow = '';
+            this.fab.querySelector('i').className = 'fas fa-comment-dots';
+        },
+
+        showTopic: function(topicId) {
+            var topic = this.topics[topicId];
+            if (!topic) return;
+            var self = this;
+
+            self.addTyping();
+            setTimeout(function() {
+                self.removeTyping();
+                self.addMessage(topic.text, 'bot');
+                if (topic.text2) {
+                    setTimeout(function() { self.addMessage(topic.text2, 'bot'); }, 200);
+                }
+                if (topic.quick) {
+                    setTimeout(function() { self.showQuickReplies(topic.quick); }, topic.text2 ? 400 : 200);
+                }
+            }, 600);
+        },
+
+        addMessage: function(html, type) {
+            var isRtl = document.documentElement.dir === 'rtl' || document.documentElement.getAttribute('dir') === 'rtl';
+            var msg = document.createElement('div');
+            msg.className = 'c-chat-msg ' + type;
+
+            var avatar = document.createElement('div');
+            avatar.className = 'c-chat-msg-avatar';
+            avatar.innerHTML = type === 'bot' ? '<i class="fas fa-robot"></i>' : '<i class="fas fa-user"></i>';
+
+            var bubble = document.createElement('div');
+            bubble.className = 'c-chat-msg-bubble';
+            bubble.innerHTML = html;
+
+            msg.appendChild(avatar);
+            msg.appendChild(bubble);
+            this.messages.appendChild(msg);
+            this.scrollToBottom();
+        },
+
+        addTyping: function() {
+            var t = document.createElement('div');
+            t.className = 'c-chat-typing';
+            t.id = 'chatTyping';
+            t.innerHTML = '<div class="c-chat-typing-dot"></div><div class="c-chat-typing-dot"></div><div class="c-chat-typing-dot"></div>';
+            this.messages.appendChild(t);
+            this.scrollToBottom();
+        },
+
+        removeTyping: function() {
+            var t = document.getElementById('chatTyping');
+            if (t) t.remove();
+        },
+
+        showQuickReplies: function(replies) {
+            this.quickEl.innerHTML = '';
+            var self = this;
+            replies.forEach(function(r) {
+                var btn = document.createElement('button');
+                btn.className = 'c-chat-chip';
+                btn.textContent = r.label;
+                btn.addEventListener('click', function() {
+                    self.addMessage(r.label, 'user');
+                    self.quickEl.innerHTML = '';
+                    self.showTopic(r.topic);
+                });
+                self.quickEl.appendChild(btn);
+            });
+        },
+
+        scrollToBottom: function() {
+            var el = this.messages;
+            el.scrollTop = el.scrollHeight;
+        }
+    };
+
+    // Initialize chatbot on load
+    document.addEventListener('DOMContentLoaded', function() {
+        CBot.init();
+    });
+
 })();
