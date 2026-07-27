@@ -1,0 +1,56 @@
+<?php
+namespace App\Controllers\Api;
+
+use App\Controllers\Controller;
+use App\Helpers\Database;
+use App\Helpers\Session;
+
+class PushController extends Controller {
+    public function subscribe(): void {
+        $this->auth();
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!$data || empty($data['endpoint'])) {
+            $this->json(['error' => 'Invalid subscription'], 400);
+            return;
+        }
+        $db = Database::getConnection();
+        $userId = Session::getUserId();
+        $stmt = $db->prepare("INSERT INTO push_subscriptions (user_id, endpoint, p256dh_key, auth_key) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$userId, $data['endpoint'], $data['keys']['p256dh'] ?? '', $data['keys']['auth'] ?? '']);
+        $this->json(['ok' => true]);
+    }
+
+    public function unsubscribe(): void {
+        $this->auth();
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!$data || empty($data['endpoint'])) { $this->json(['error' => 'Invalid'], 400); return; }
+        $db = Database::getConnection();
+        $db->prepare("DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?")->execute([Session::getUserId(), $data['endpoint']]);
+        $this->json(['ok' => true]);
+    }
+
+    public static function sendPush(int $userId, string $title, string $body, string $url = '/notifications'): void {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT endpoint, p256dh_key, auth_key FROM push_subscriptions WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $subs = $stmt->fetchAll();
+        foreach ($subs as $sub) {
+            $payload = json_encode(['title' => $title, 'body' => $body, 'url' => $url]);
+            // Web push via curl to browser push service
+            $ch = curl_init($sub['endpoint']);
+            curl_setopt_array($ch, [
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 5
+            ]);
+            curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($code === 410 || $code === 404) {
+                $db->prepare("DELETE FROM push_subscriptions WHERE endpoint = ?")->execute([$sub['endpoint']]);
+            }
+        }
+    }
+}

@@ -1,0 +1,42 @@
+{
+    "name": "Balagh Alger — Signalement Citoyen",
+    "short_name": "Balagh",
+    "description": "Plateforme de signalement citoyen — Wilaya d'Alger",
+    "start_url": "/dashboard",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#6366f1",
+    "orientation": "portrait-primary",
+    "categories": ["government", "utilities"],
+    "lang": "fr",
+    "dir": "auto",
+    "icons": [
+        {
+            "src": "/assets/img/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/assets/img/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Nouveau signalement",
+            "short_name": "Signaler",
+            "url": "/reports/create",
+            "icons": [{"src": "/assets/img/icon-192.png", "sizes": "192x192"}]
+        },
+        {
+            "name": "Suivi public",
+            "short_name": "Suivi",
+            "url": "/suivi",
+            "icons": [{"src": "/assets/img/icon-192.png", "sizes": "192x192"}]
+        }
+    ]
+}
