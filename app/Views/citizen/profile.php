@@ -7,16 +7,6 @@ $stats = \App\Helpers\Badge::getUserStats($userId);
 $recentActivity = \App\Helpers\Gamification::getRecentActivity($userId, 10);
 $user = $this->getUser();
 ?>
-<style>
-.profile-hero { background: linear-gradient(135deg, var(--c-accent), #8b5cf6, #06b6d4); border-radius: 0 0 24px 24px; padding: 24px 16px; margin: -12px -16px 16px; text-align: center; position: relative; overflow: hidden; }
-.profile-hero::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.15), transparent 50%); }
-.profile-avatar-wrap { position: relative; z-index: 1; display: inline-block; margin-bottom: 10px; }
-.profile-avatar { width: 80px; height: 80px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: #fff; }
-.profile-name { position: relative; z-index: 1; font-weight: 800; font-size: 1.15rem; color: #fff; }
-.profile-email { position: relative; z-index: 1; font-size: 0.78rem; color: rgba(255,255,255,0.7); margin-top: 2px; }
-.profile-level-badge { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; background: rgba(255,255,255,0.15); color: #fff; font-size: 0.78rem; font-weight: 600; margin-top: 10px; backdrop-filter: blur(8px); }
-.activity-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
-</style>
 
 <!-- Hero -->
 <div class="profile-hero">
@@ -139,49 +129,6 @@ foreach ($badgeDefs as $key => $def):
 </div>
 
 <!-- Virtual ID Card -->
-<style>
-.idcard-section{margin-top:20px;margin-bottom:20px;}
-.idcard-wrapper{perspective:1200px;margin:0 auto;max-width:580px}
-.idcard{position:relative;width:100%;aspect-ratio:1.586/1;border-radius:14px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,0.3),0 2px 8px rgba(0,0,0,0.15);transition:transform 0.4s;transform-style:preserve-3d}
-.idcard:hover{transform:rotateY(3deg) rotateX(1deg) scale(1.01)}
-.idcard-front{position:absolute;inset:0;background:linear-gradient(165deg,#1e3a5f 0%,#0f2744 40%,#1a2f4a 100%);border-radius:14px;z-index:2}
-.idcard-holo{position:absolute;top:0;right:0;width:120px;height:120px;background:radial-gradient(circle at 70% 30%,rgba(255,215,0,0.15),rgba(255,215,0,0.05) 40%,transparent 70%);pointer-events:none;z-index:10}
-.idcard-holo::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(135deg,transparent,transparent 2px,rgba(255,255,255,0.02) 2px,rgba(255,255,255,0.02) 4px);z-index:1}
-.idcard-stripe{position:absolute;bottom:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#c0392b,#e74c3c,#f39c12,#27ae60,#2980b9,#8e44ad);z-index:10}
-.idcard-header{display:flex;align-items:center;gap:0.8rem;padding:0.8rem 1rem;border-bottom:1px solid rgba(255,255,255,0.08);position:relative;z-index:5}
-.idcard-logo{width:48px;height:48px;border-radius:50%;object-fit:contain;background:rgba(255,255,255,0.1);padding:3px;border:1.5px solid rgba(255,255,255,0.15)}
-.idcard-header-text{flex:1}
-.idcard-header-title{font-size:0.82rem;font-weight:700;color:#fff;letter-spacing:0.5px;text-transform:uppercase}
-.idcard-header-sub{font-size:0.6rem;color:rgba(255,255,255,0.55);letter-spacing:1px;text-transform:uppercase}
-.idcard-body{display:flex;gap:1rem;padding:0.8rem 1rem;position:relative;z-index:5}
-.idcard-photo-wrap{flex-shrink:0;width:90px;height:110px;border-radius:8px;overflow:hidden;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center}
-.idcard-photo{width:100%;height:100%;object-fit:cover}
-.idcard-photo-letter{font-size:2.2rem;font-weight:700;color:rgba(255,255,255,0.6)}
-.idcard-info{flex:1;display:flex;flex-direction:column;justify-content:center;gap:0.25rem;min-width:0}
-.idcard-name{font-size:1.05rem;font-weight:700;color:#fff;letter-spacing:0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.idcard-email{font-size:0.68rem;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.idcard-details{display:flex;flex-direction:column;gap:0.2rem;margin-top:0.3rem}
-.idcard-detail{display:flex;align-items:center;gap:0.4rem;font-size:0.65rem;color:rgba(255,255,255,0.6)}
-.idcard-detail i{width:12px;font-size:0.6rem;color:rgba(255,255,255,0.35)}
-.idcard-detail strong{color:rgba(255,255,255,0.85);font-weight:600}
-.idcard-role-badge{display:inline-flex;align-items:center;gap:0.25rem;padding:0.15rem 0.5rem;border-radius:4px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-top:0.3rem;width:fit-content;border:1px solid rgba(255,255,255,0.08)}
-.idcard-qr{position:absolute;bottom:0.8rem;right:1rem;z-index:5}
-.idcard-qr canvas{border-radius:4px;background:#fff;padding:3px}
-.idcard-qr-label{font-size:0.5rem;color:rgba(255,255,255,0.35);text-align:center;margin-top:2px;letter-spacing:0.5px}
-.idcard-serial{position:absolute;bottom:0.8rem;left:1rem;font-size:0.55rem;color:rgba(255,255,255,0.25);letter-spacing:1.5px;font-family:'Courier New',monospace;z-index:5}
-.idcard-micro{position:absolute;top:0;left:0;right:0;height:40px;background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(255,255,255,0.015) 1px,rgba(255,255,255,0.015) 2px);z-index:1;pointer-events:none}
-@media(max-width:576px){
-    .idcard{border-radius:10px}
-    .idcard-header{padding:0.6rem 0.8rem}
-    .idcard-logo{width:38px;height:38px}
-    .idcard-header-title{font-size:0.72rem}
-    .idcard-body{padding:0.6rem 0.8rem;gap:0.7rem}
-    .idcard-photo-wrap{width:72px;height:90px}
-    .idcard-name{font-size:0.9rem}
-    .idcard-qr{bottom:0.5rem;right:0.7rem}
-    .idcard-qr canvas{width:55px!important;height:55px!important}
-}
-</style>
 
 <div class="idcard-section c-anim-fade">
     <div class="c-section-title">
@@ -234,19 +181,19 @@ foreach ($badgeDefs as $key => $def):
 
 <!-- Links -->
 <div style="margin-top:20px;" class="c-anim-fade">
-    <a href="/leaderboard" class="c-btn c-btn-outline c-btn-block" style="margin-bottom:8px;text-decoration:none;color:inherit;">
+    <a href="/leaderboard" class="c-btn c-btn-outline c-btn-block c-profile-link">
         <i class="fas fa-trophy"></i> Classement
     </a>
-    <a href="/badges" class="c-btn c-btn-outline c-btn-block" style="margin-bottom:8px;text-decoration:none;color:inherit;">
+    <a href="/badges" class="c-btn c-btn-outline c-btn-block c-profile-link">
         <i class="fas fa-award"></i> Badges & Récompenses
     </a>
-    <a href="/citizen/map" class="c-btn c-btn-outline c-btn-block" style="margin-bottom:8px;text-decoration:none;color:inherit;">
+    <a href="/citizen/map" class="c-btn c-btn-outline c-btn-block c-profile-link">
         <i class="fas fa-map-location-dot"></i> Carte des signalements
     </a>
-    <a href="/before-after" class="c-btn c-btn-outline c-btn-block" style="margin-bottom:8px;text-decoration:none;color:inherit;">
+    <a href="/before-after" class="c-btn c-btn-outline c-btn-block c-profile-link">
         <i class="fas fa-images"></i> Avant / Après
     </a>
-    <a href="/my-profile/edit" class="c-btn c-btn-outline c-btn-block" style="margin-bottom:8px;text-decoration:none;color:inherit;">
+    <a href="/my-profile/edit" class="c-btn c-btn-outline c-btn-block c-profile-link">
         <i class="fas fa-user-pen"></i> <?= __('common.edit_profile') ?>
     </a>
     <form method="POST" action="/logout" style="margin-top:12px;">

@@ -35,11 +35,13 @@ $wfSteps = [
 </div>
 
 <!-- ==================== OFFICIAL BANNER ==================== -->
-<div class="animate-fade-in-up" style="background:linear-gradient(135deg,#D2122E 0%,#A30E24 50%,#8B0A1C 100%);border-radius:20px;padding:0;overflow:hidden;margin-bottom:1.25rem;box-shadow:0 16px 48px rgba(210,18,46,0.35);position:relative;">
-    <div style="position:absolute;top:0;right:0;width:300px;height:100%;background:radial-gradient(circle,rgba(255,255,255,0.07),transparent 70%);pointer-events:none;"></div>
-    <div style="position:absolute;bottom:-40px;left:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.03);pointer-events:none;"></div>
-    <div style="height:4px;background:linear-gradient(90deg,#006233 0%,#006233 33%,#fff 33%,#fff 66%,#D2122E 66%,#D2122E 100%);"></div>
-    <div style="padding:1.5rem;position:relative;z-index:1;">
+<div class="c-official-banner animate-fade-in-up" style="background:linear-gradient(135deg,#D2122E 0%,#A30E24 50%,#8B0A1C 100%);box-shadow:0 16px 48px rgba(210,18,46,0.35);">
+    <div class="banner-flag">
+        <div class="banner-flag-green"></div>
+        <div class="banner-flag-white"></div>
+        <div class="banner-flag-red"></div>
+    </div>
+    <div class="banner-content">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
@@ -130,7 +132,7 @@ $wfSteps = [
 
                 <?php if ($report['latitude'] && $report['longitude']): ?>
                 <div class="mt-3">
-                    <div id="reportMap" style="height:220px;border-radius:14px;overflow:hidden;border:1px solid var(--border);"></div>
+                    <div id="reportMap" class="c-show-map"></div>
                     <div class="d-flex justify-content-between align-items-center mt-1">
                         <small class="text-muted" style="font-family:var(--font-mono);font-size:0.72rem;"><?= $report['latitude'] ?>, <?= $report['longitude'] ?></small>
                         <a href="https://www.google.com/maps?q=<?= $report['latitude'] ?>,<?= $report['longitude'] ?>" target="_blank" style="color:var(--accent);font-size:0.78rem;text-decoration:none;font-weight:600;"><?= __('reports.google_maps') ?> <i class="fas fa-external-link-alt" style="font-size:0.65rem;"></i></a>

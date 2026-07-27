@@ -268,19 +268,6 @@
     </div>
 </form>
 
-<style>
-#similarReports .sr-card{border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;background:var(--bg-elevated);transition:border-color 0.2s;}
-#similarReports .sr-card:hover{border-color:var(--accent);}
-#similarReports .sr-title{font-weight:600;font-size:0.85rem;color:var(--text-primary);text-decoration:none;}
-#similarReports .sr-title:hover{color:var(--accent);}
-#similarReports .sr-meta{font-size:0.75rem;color:var(--text-muted);margin-top:4px;}
-#similarReports .sr-badge{display:inline-block;font-size:0.65rem;padding:2px 8px;border-radius:10px;font-weight:600;}
-#similarReports .sr-distance{font-size:0.72rem;font-weight:600;color:var(--accent);margin-left:auto;}
-#similarReports .sr-header{font-size:0.78rem;font-weight:600;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
-#similarReports .sr-none{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:var(--green);display:flex;align-items:center;gap:8px;}
-#similarReports .sr-loading{font-size:0.78rem;color:var(--text-muted);padding:8px 0;}
-</style>
-
 <script>
 (function() {
     var currentStep = 0;

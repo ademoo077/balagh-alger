@@ -25,7 +25,7 @@
 </div>
 
 <!-- Level Card -->
-<div class="c-card c-anim-slide c-delay-2" style="margin-bottom:16px;">
+<div class="c-card c-anim-slide c-delay-2">
     <div style="display:flex;align-items:center;gap:14px;">
         <div class="c-feed-avatar" style="width:52px;height:52px;font-size:1.2rem;">
             <?= strtoupper(substr(\App\Helpers\Session::getUserName(), 0, 1)) ?>
@@ -49,7 +49,7 @@
     <span style="font-size:0.75rem;color:var(--c-text-muted);"><?= count($earnedKeys) ?>/<?= count($allBadges) ?> obtenus</span>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px;">
+<div class="c-badge-grid">
 <?php foreach ($allBadges as $key => $def):
     $earned = in_array($key, $earnedKeys);
     $earnedAt = null;

@@ -35,7 +35,7 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
 <body>
 
     <!-- Offline Banner -->
-    <div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;text-align:center;padding:8px 16px;font-size:0.8rem;font-weight:700;letter-spacing:0.02em;">
+    <div id="offlineBanner" class="c-offline-banner">
         <i class="fas fa-wifi-slash" style="margin-right:6px;"></i> Vous êtes hors ligne — les envois seront retardés
     </div>
 
@@ -70,19 +70,15 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
     <!-- Main Content -->
     <main class="c-container <?= $containerClass ?? '' ?>" id="cMain">
         <?php if ($msg = \App\Helpers\Session::getFlash('success')): ?>
-        <div class="c-card-flat c-anim-fade" style="border-color:rgba(34,197,94,0.3);background:var(--c-green-surface);margin-bottom:12px;">
-            <div style="display:flex;align-items:center;gap:10px;color:var(--c-green);">
-                <i class="fas fa-check-circle"></i>
-                <span style="font-size:0.85rem;font-weight:500;"><?= $msg ?></span>
-            </div>
+        <div class="c-alert c-alert-success">
+            <i class="fas fa-check-circle"></i>
+            <span><?= $msg ?></span>
         </div>
         <?php endif; ?>
         <?php if ($msg = \App\Helpers\Session::getFlash('error')): ?>
-        <div class="c-card-flat c-anim-fade" style="border-color:rgba(239,68,68,0.3);background:var(--c-red-surface);margin-bottom:12px;">
-            <div style="display:flex;align-items:center;gap:10px;color:var(--c-red);">
-                <i class="fas fa-exclamation-circle"></i>
-                <span style="font-size:0.85rem;font-weight:500;"><?= $msg ?></span>
-            </div>
+        <div class="c-alert c-alert-error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span><?= $msg ?></span>
         </div>
         <?php endif; ?>
 
