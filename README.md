@@ -1,7 +1,9 @@
 # Balagh Alger —بلاغ الجزائر
+
 <p align="center">
   <img src="balagh-alger-logo.png" alt="Project Logo" width="1200" />
 </p>
+
 **Plateforme de signalement citoyen pour les municipalités d'Alger**
 
 ![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?logo=php)
