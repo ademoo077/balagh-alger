@@ -14,6 +14,7 @@
 ![Version](https://img.shields.io/badge/Version-2.0-blue)
 
 ---
+
 ## Table des matières
 
 1. [Présentation](#1-présentation)
@@ -206,12 +207,31 @@ $this->getUser();                 // Récupère l'utilisateur courant
 | `php artisan queue:flush` | Vider les jobs échoués |
 | `php artisan sla:run` | Exécuter les alertes SLA |
 | `php artisan app:info` | Info application |
+| `php vendor/bin/phpunit` | Lancer les tests |
+| `php vendor/bin/phpunit --filter=xxx` | Filtrer les tests |
 
-### CI/CD
+### Tests
 
-- Aucun framework de test (pas de PHPUnit)
-- Aucune configuration CI/CD
-- Aucune configuration Docker
+| Métrique | Valeur |
+|----------|--------|
+| Framework | PHPUnit 11 |
+| Tests | 181 tests, 338 assertions |
+| Couverture | Unitaires + Intégration (MySQL) + Fonctionnels (HTTP) |
+| Base de test | `balagh_alger_test` (auto-créée, rollback automatique) |
+
+```bash
+# Lancer tous les tests
+php vendor/bin/phpunit
+
+# Tests unitaires uniquement
+php vendor/bin/phpunit tests/Helpers/
+
+# Tests d'intégration DB
+php vendor/bin/phpunit tests/Helpers/RbacIntegrationTest.php
+
+# Tests fonctionnels (serveur PHP requis sur le port 8000)
+php -S 0.0.0.0:8000 -t public &
+php vendor/bin/phpunit tests/Controllers/
 
 ---
 
@@ -949,6 +969,28 @@ htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 ├── queue/
 │   └── worker.php                    # Worker Redis avec options CLI
 │
+├── tests/
+│   ├── bootstrap.php                 # Auto-loader, env vars test DB
+│   ├── DatabaseTestCase.php          # Base avec transaction/rollback
+│   ├── Helpers/                      # 13 fichiers de tests
+│   │   ├── ValidatorTest.php
+│   │   ├── CsrfTest.php
+│   │   ├── I18nTest.php
+│   │   ├── HelperTest.php
+│   │   ├── RouterTest.php
+│   │   ├── SessionTest.php
+│   │   ├── DeadlineHelperTest.php
+│   │   ├── RbacTest.php
+│   │   ├── BadgeTest.php
+│   │   ├── RbacIntegrationTest.php
+│   │   ├── BadgeIntegrationTest.php
+│   │   └── NotificationIntegrationTest.php
+│   ├── Middleware/
+│   │   └── AuthMiddlewareTest.php
+│   └── Controllers/
+│       ├── LandingControllerTest.php
+│       └── TrackingControllerTest.php
+│
 ├── app/
 │   ├── Config/
 │   │   ├── app.php                   # Configuration générale
@@ -1426,6 +1468,11 @@ php artisan sla:run                             # Exécuter les alertes SLA
    50+ vues
    2 layouts
    2 fichiers de routes
+
+18 fichiers de tests
+   181 tests PHPUnit (338 assertions)
+   3 phases : unitaires + intégration DB + fonctionnels HTTP
+   Base dédiée : balagh_alger_test
 
 4 fichiers JavaScript
   app.js      (~970 lignes — admin + assistant IA)
