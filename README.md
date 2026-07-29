@@ -14,7 +14,6 @@
 ![Version](https://img.shields.io/badge/Version-2.0-blue)
 
 ---
-
 ## Table des matières
 
 1. [Présentation](#1-présentation)
@@ -59,7 +58,8 @@
 - **CMS** : Page d'accueil entièrement gérable par l'administration
 - **Queue** : Système de jobs asynchrones Redis
 - **SLA** : Suivi des délais avec alertes automatiques
-- **670 fichiers PHP** | **~25 000 lignes de code** | **38 tables MySQL**
+- **Assistant IA** : Chatbot intelligent avec intégration Gemini API, contexte base de données
+- **~680 fichiers PHP** | **~26 000 lignes de code** | **38 tables MySQL**
 
 ---
 
@@ -78,7 +78,7 @@
 - Profil avec statistiques personnelles
 - Mode hors-ligne avec file d'attente de signalements
 - Notifications push
-- Chatbot intégré
+- Assistant IA intelligent (Gemini API, contexte base de données temps réel)
 
 ### Côté Administration
 - Dashboard avec graphiques (catégories, priorités, daïras, tendances)
@@ -183,7 +183,8 @@ $this->getUser();                 // Récupère l'utilisateur courant
 | Composant | Technologie | Source |
 |-----------|------------|--------|
 | CSS Framework | Bootstrap | 5.3 (CDN) |
-| Design System | `app.css` / `citizen.css` | Custom (~4 600 lignes) |
+| Design System | `app.css` / `citizen.css` | Custom (~5 300 lignes) |
+| Assistant IA | Gemini API | — |
 | Icônes | Font Awesome | 6.5.1 (CDN) |
 | Icônes MDI | Material Design Icons | 7.4.47 (CDN) |
 | Cartes | Leaflet.js | 1.9.4 (CDN) |
@@ -1035,6 +1036,7 @@ htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 │       ├── section-communes/         # index
 │       ├── settings/                 # index
 │       ├── notifications/            # index, citizen, _dropdown_items
+│       ├── ai/                       # chat (assistant IA)
 │       ├── tracking/                 # index, show, not_found (public)
 │       ├── share/                    # show, not_found (public)
 │       ├── citizen/                  # home, quick-report, feed, map,
@@ -1053,11 +1055,11 @@ htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     ├── favicon.ico
     ├── assets/
     │   ├── css/
-    │   │   ├── app.css               # Design system admin (2128 lignes)
-    │   │   └── citizen.css           # Design system citoyen (2556 lignes)
+    │   │   ├── app.css               # Design system admin (~2 720 lignes)
+    │   │   └── citizen.css           # Design system citoyen (~2 560 lignes)
     │   ├── js/
-    │   │   ├── app.js                # JS admin (700 lignes)
-    │   │   ├── citizen.js            # JS citoyen (506 lignes)
+    │   │   ├── app.js                # JS admin (~970 lignes)
+    │   │   ├── citizen.js            # JS citoyen (~510 lignes)
     │   │   └── i18n.js               # Client-side i18n (120 lignes)
     │   └── img/
     │       ├── icon-192.png
@@ -1108,6 +1110,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 | **Interventions** | `/interventions`, `/interventions/{id}` |
 | **Dashboard** | `/dashboard`, `/dashboard/impact`, `/dashboard/agent` |
 | **Citoyen** | `/home`, `/quick-report`, `/my-profile`, `/badges`, `/leaderboard`, `/citizen/map`, `/feed` |
+| **AI Assistant** | `/ai/chat` (interface), `/api/ai/ask` (endpoint API) |
 | **Admin** | `/users/*`, `/organizations/*`, `/categories/*`, `/dairas/*`, `/section-communes/*`, `/settings`, `/notifications/*`, `/audit` |
 | **CMS Landing** | `/admin/landing/*` (partners, gallery, testimonials, before-after, FAQ, settings) |
 | **Feed** | `/feed`, `/feed/store`, `/feed/{id}/like`, `/feed/{id}/comment` |
@@ -1138,6 +1141,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 | `ShareController` | Page de partage avec meta OpenGraph pour réseaux sociaux |
 | `LandingController` | Page d'accueil publique : stats live, catégories, daïras avec compteurs, contenu dynamique CMS |
 | `LandingPageController` | CMS admin pour la landing : partenaires, galerie, témoignages, avant/après, FAQ, paramètres |
+| `AiController` | Assistant IA : chat interface, endpoint `ask()` avec contexte base de données, intégration Gemini API |
 
 ### Contrôleurs API (10)
 
@@ -1153,6 +1157,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 | `Api\CategoryController` | `/api/subcategories/{id}` | Sous-catégories par catégorie |
 | `Api\DairaController` | `/api/communes/{id}` | Communes par daïra |
 | `Api\LangController` | `/api/set-lang` | Changement de langue |
+| `AiController` | `/api/ai/ask` | Assistant IA (conversation avec contexte DB) |
 
 ---
 
@@ -1214,7 +1219,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 }
 ```
 
-### CSS Admin (`app.css` — 2128 lignes)
+### CSS Admin (`app.css` — ~2 720 lignes)
 
 - Design system complet avec variables CSS
 - Sidebar sombre avec navigation par icônes
@@ -1223,6 +1228,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 - Heatmap grid (7 jours × 24 heures)
 - Période arrows (↑↓ comparaison)
 - Thème dark/light basculable
+- Assistant IA chat : glassmorphisme, bulles enrichies markdown, typing dots, suggestions, design responsive
 
 ### CSS Citoyen (`citizen.css` — 2556 lignes)
 
@@ -1234,7 +1240,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 - Mode standalone (`@media (display-mode: standalone)`)
 - Chatbot intégré
 
-### JS Admin (`app.js` — 700 lignes)
+### JS Admin (`app.js` — ~970 lignes)
 
 - Gestion thème (localStorage)
 - Sidebar collapsible
@@ -1243,6 +1249,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 - Notifications dropdown (AJAX)
 - Compteurs animés (`data-count-up`)
 - Thème toggle
+- Assistant IA : envoi/réception messages, historique conversation, markdown formatting, chargement indicateur, suggestions, effacer dialogue
 
 ### JS Citoyen (`citizen.js` — 506 lignes)
 
@@ -1251,7 +1258,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 - Changement de langue
 - Recherche locale
 - Animations au scroll
-- Chatbot avec réponses prédéfinies
+- Chatbot avec réponses prédéfinies (citoyen)
 - PWA install banner
 
 ### JS i18n (`i18n.js` — 120 lignes)
@@ -1381,8 +1388,8 @@ php artisan sla:run                             # Exécuter les alertes SLA
 | Daïras | 13 |
 | Communes | 57 |
 | Tables MySQL | 38 |
-| Fichiers PHP | 670 |
-| Lignes de code | ~25 000 |
+| Fichiers PHP | ~680 |
+| Lignes de code | ~26 000 |
 
 ### Répartition des signalements
 
@@ -1412,23 +1419,23 @@ php artisan sla:run                             # Exécuter les alertes SLA
 ### Fichiers du projet
 
 ```
-670 fichiers PHP
-  29 contrôleurs (18 web + 10 API + 1 base)
-  16 helpers
-  5 jobs
-  50+ vues
-  2 layouts
-  2 fichiers de routes
+~680 fichiers PHP
+   30 contrôleurs (18 web + 11 API + 1 base)
+   16 helpers
+   5 jobs
+   50+ vues
+   2 layouts
+   2 fichiers de routes
 
 4 fichiers JavaScript
-  app.js      (700 lignes — admin)
-  citizen.js  (506 lignes — citoyen)
+  app.js      (~970 lignes — admin + assistant IA)
+  citizen.js  (~510 lignes — citoyen)
   i18n.js     (120 lignes — traductions)
   sw.js       (288 lignes — service worker)
 
 2 fichiers CSS
-  app.css     (2128 lignes — design admin)
-  citizen.css (2556 lignes — design citoyen)
+  app.css     (~2 720 lignes — design admin + assistant IA)
+  citizen.css (~2 560 lignes — design citoyen)
 ```
 
 ---
