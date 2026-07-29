@@ -1,9 +1,7 @@
 # Balagh Alger —بلاغ الجزائر
-
 <p align="center">
   <img src="balagh-alger-logo.png" alt="Project Logo" width="800" />
 </p>
-
 **Plateforme de signalement citoyen pour les municipalités d'Alger**
 
 ![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?logo=php)
@@ -42,6 +40,7 @@
 23. [Déploiement](#23-déploiement)
 24. [CLI Artisan](#24-cli-artisan)
 25. [Statistiques](#25-statistiques)
+26. [Backup & Monitoring](#26-backup--monitoring)
 
 ---
 
@@ -1483,6 +1482,68 @@ php artisan sla:run                             # Exécuter les alertes SLA
 2 fichiers CSS
   app.css     (~2 720 lignes — design admin + assistant IA)
   citizen.css (~2 560 lignes — design citoyen)
+```
+
+---
+
+## 26. Backup & Monitoring
+
+### Système de backup automatisé
+
+```
+/backup/
+├── db/      balagh_YYYYMMDD_HHMMSS.sql.gz    ← Dump MySQL (rétention 30 jours)
+├── files/   snap_YYYYMMDD_HHMMSS/            ← Uploads (snapshots journaliers, rétention 7 jours)
+├── config/  config_YYYYMMDD_HHMMSS.tar.gz    ← .env + app/Config/ (rétention 90 jours)
+└── logs/    backup.log                        ← Journal des opérations
+```
+
+### Planification (cron)
+
+| Horaire | Action |
+|---------|--------|
+| 3h00 | Backup base de données (mysqldump --single-transaction) |
+| 4h00 | Backup fichiers uploads (rsync avec hardlinks) |
+| 5h00 | Backup configuration (.env + app/Config/) |
+| Dimanche 6h00 | Backup complet |
+
+### Monitoring (balagh-monitor.service)
+
+Service systemd qui vérifie toutes les 5 minutes :
+
+| Service | Méthode de test | Action si down |
+|---------|----------------|----------------|
+| MariaDB | `mysqladmin ping` | `systemctl restart mariadb` |
+| Redis | `redis-cli ping` | `/etc/init.d/redis-server restart` |
+| PHP dev server | `curl -f http://localhost:8000/` | `pkill + nohup php -S ...` |
+| Disque | `df /` > 85% | Alerte dans `/var/log/balagh-monitor.log` |
+| Backup | Fichier DB < 24h | Avertissement si absent |
+
+### Scripts
+
+| Script | Emplacement | Usage |
+|--------|------------|-------|
+| Backup | `/usr/local/bin/balagh-backup.sh` | `balagh-backup.sh [db\|files\|config\|all]` |
+| Restore | `/usr/local/bin/balagh-restore.sh` | `balagh-restore.sh /backup/db/balagh_*.sql.gz` |
+| Monitor | `/usr/local/bin/balagh-monitor.sh` | Service systemd auto-récupération |
+
+### Sauvegarde manuelle
+
+```bash
+# Backup complet
+/usr/local/bin/balagh-backup.sh all
+
+# Backup DB uniquement
+/usr/local/bin/balagh-backup.sh db
+
+# Restauration
+/usr/local/bin/balagh-restore.sh /backup/db/balagh_20260729_132036.sql.gz
+
+# Logs monitoring
+journalctl -u balagh-monitor.service -f
+
+# Logs backup
+tail -f /backup/logs/backup.log
 ```
 
 ---
