@@ -94,6 +94,7 @@
 - Système de notifications in-app
 - Génération de rapports PDF
 - Paramètres système
+- Gestion des rôles et permissions (36 permissions, 7 rôles, interface onglets)
 
 ### Page d'accueil publique
 - Statistiques en temps réel (AJAX)
@@ -466,31 +467,47 @@ intervenant (niveau 3)            ← Signalements qui lui sont assignés
 citizen (niveau 1)                ← Propres signalements uniquement
 ```
 
-### Permissions (27+)
+### Permissions (36)
 
-| Permission | Description |
-|-----------|------------|
-| `dashboard.view` | Accès au tableau de bord |
-| `reports.create` | Créer des signalements |
-| `reports.view` | Voir les signalements |
-| `reports.update` | Modifier les signalements |
-| `reports.assign` | Assigner des signalements |
-| `reports.close` | Fermer des signalements |
-| `reports.export` | Exporter les rapports |
-| `interventions.manage` | Gérer les interventions |
-| `interventions.validate` | Valider les interventions |
-| `categories.view` | Voir les catégories |
-| `categories.manage` | Gérer les catégories |
-| `organizations.view` | Voir les organisations |
-| `organizations.create` | Créer des organisations |
-| `organizations.update` | Modifier les organisations |
-| `users.view` | Voir les utilisateurs |
-| `users.create` | Créer des utilisateurs |
-| `users.update` | Modifier les utilisateurs |
-| `audit.view` | Voir le journal d'audit |
-| `settings.manage` | Gérer les paramètres |
-| `landing.manage` | Gérer la page d'accueil |
-| `dairas.view` | Voir les daïras |
+| Permission | Module | Description |
+|-----------|--------|------------|
+| `dashboard.view` | dashboard | Accès au tableau de bord |
+| `dashboard.stats` | dashboard | Voir les statistiques |
+| `reports.view` | reports | Voir les signalements |
+| `reports.view_all` | reports | Voir tous les signalements |
+| `reports.view_assigned` | reports | Voir les signalements assignés |
+| `reports.view_org` | reports | Voir les signalements de l'organisme |
+| `reports.create` | reports | Créer un signalement |
+| `reports.update` | reports | Modifier un signalement |
+| `reports.delete` | reports | Supprimer un signalement |
+| `reports.assign` | reports | Assigner un signalement |
+| `reports.resolve` | reports | Résoudre un signalement |
+| `reports.comment` | reports | Commenter un signalement |
+| `reports.export` | reports | Exporter les signalements |
+| `reports.reassign` | reports | Réaffecter un signalement |
+| `reports.redirect` | reports | Rediriger vers un autre organisme |
+| `users.view` | users | Voir les utilisateurs |
+| `users.create` | users | Créer des utilisateurs |
+| `users.update` | users | Modifier les utilisateurs |
+| `users.delete` | users | Supprimer des utilisateurs |
+| `users.suspend` | users | Suspendre des utilisateurs |
+| `users.manage_org` | users | Gérer les utilisateurs de l'organisme |
+| `organizations.view` | organizations | Voir les organismes |
+| `organizations.create` | organizations | Créer un organisme |
+| `organizations.update` | organizations | Modifier un organisme |
+| `organizations.delete` | organizations | Supprimer un organisme |
+| `categories.view` | categories | Voir les catégories |
+| `categories.manage` | categories | Gérer les catégories |
+| `dairas.view` | dairas | Voir les daïras |
+| `dairas.manage` | dairas | Gérer les daïras |
+| `notifications.view` | notifications | Voir les notifications |
+| `notifications.manage` | notifications | Gérer les notifications |
+| `settings.view` | settings | Voir les paramètres |
+| `settings.update` | settings | Modifier les paramètres |
+| `audit.view` | audit | Voir le journal d'audit |
+| `landing.manage` | landing | Gérer la page d'accueil |
+
+~ Gestion des rôles accessible via `/settings/roles` (nécessite `settings.update`). Interface avec onglets par rôle, toggles par module, filtre par mot-clé, compteurs.
 
 ### Résolution de portée
 
@@ -504,6 +521,17 @@ citizen (niveau 1)                ← Propres signalements uniquement
 // Exemple pour un intervenant :
 // WHERE r.assigned_to = ? OR r.citizen_id = ?
 ```
+
+### Interface de gestion
+
+Un panneau de gestion des rôles est disponible sur `/settings/roles` (accessible avec `settings.update`) :
+
+- **7 rôles** organisés en onglets (pills)
+- **36 permissions** regroupées par module (dashboard, reports, users, organizations, categories, dairas, notifications, settings, audit, landing)
+- Toggles switch par permission, select/deselect par module ou global
+- Filtre par mot-clé
+- Admin Central en lecture seule (bypass code)
+- Compteurs dynamiques (par rôle et par module)
 
 ### Utilisation dans les contrôleurs
 
@@ -1011,7 +1039,8 @@ htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 │   │   ├── OrganizationController.php # CRUD organisations
 │   │   ├── DairaController.php       # Daïras
 │   │   ├── SectionCommuneController.php # Affectation communes
-│   │   ├── SettingController.php     # Paramètres
+│   │   ├── SettingController.php     # Paramètres généraux
+│   │   ├── RoleController.php        # Gestion des rôles & permissions
 │   │   ├── NotificationController.php # Notifications
 │   │   ├── AuditController.php       # Journal d'audit
 │   │   ├── TrackingController.php    # Suivi public
@@ -1076,7 +1105,7 @@ htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 │       ├── organizations/            # index, create, show, edit
 │       ├── dairas/                   # index, show
 │       ├── section-communes/         # index
-│       ├── settings/                 # index
+│       ├── settings/                 # index, roles
 │       ├── notifications/            # index, citizen, _dropdown_items
 │       ├── ai/                       # chat (assistant IA)
 │       ├── tracking/                 # index, show, not_found (public)
@@ -1153,7 +1182,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 | **Dashboard** | `/dashboard`, `/dashboard/impact`, `/dashboard/agent` |
 | **Citoyen** | `/home`, `/quick-report`, `/my-profile`, `/badges`, `/leaderboard`, `/citizen/map`, `/feed` |
 | **AI Assistant** | `/ai/chat` (interface), `/api/ai/ask` (endpoint API) |
-| **Admin** | `/users/*`, `/organizations/*`, `/categories/*`, `/dairas/*`, `/section-communes/*`, `/settings`, `/notifications/*`, `/audit` |
+| **Admin** | `/users/*`, `/organizations/*`, `/categories/*`, `/dairas/*`, `/section-communes/*`, `/settings`, `/settings/roles`, `/notifications/*`, `/audit` |
 | **CMS Landing** | `/admin/landing/*` (partners, gallery, testimonials, before-after, FAQ, settings) |
 | **Feed** | `/feed`, `/feed/store`, `/feed/{id}/like`, `/feed/{id}/comment` |
 
@@ -1177,6 +1206,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 | `DairaController` | Liste daïras (avec nombre de communes) et vue détail (communes + signalements récents) |
 | `SectionCommuneController` | Affectation/suppression communes aux chefs de section. Filtré par rôle |
 | `SettingController` | Gestion des paramètres système. Whitelist de clés anti mass-assignment |
+| `RoleController` | Gestion des rôles et permissions. Interface onglets avec toggles par module, select/deselect global et par module |
 | `NotificationController` | Liste notifications, marquer lu, marquer toutes lues, compteur (AJAX). Dropdown XHR |
 | `AuditController` | Visualiseur de journal d'audit avec filtres (utilisateur, action, modèle, dates). Paginé (50/page) |
 | `TrackingController` | Suivi public (pas d'auth). Statut, timeline, interventions, deadline. Rendu sans layout |
@@ -1462,8 +1492,8 @@ php artisan sla:run                             # Exécuter les alertes SLA
 
 ```
 ~680 fichiers PHP
-   30 contrôleurs (18 web + 11 API + 1 base)
-   16 helpers
+    31 contrôleurs (19 web + 11 API + 1 base)
+    16 helpers
    5 jobs
    50+ vues
    2 layouts
@@ -1481,7 +1511,7 @@ php artisan sla:run                             # Exécuter les alertes SLA
   sw.js       (288 lignes — service worker)
 
 2 fichiers CSS
-  app.css     (~2 720 lignes — design admin + assistant IA)
+  app.css     (~2 740 lignes — design admin + assistant IA + sidebar scrollbar)
   citizen.css (~2 560 lignes — design citoyen)
 ```
 
