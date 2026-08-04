@@ -2,6 +2,9 @@
 
 **Plateforme de signalement citoyen pour les municipalités d'Alger**
 
+<img src="balagh-alger-logo.png" alt="Balagh Alger Banner" width="100%">
+
+
 ![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?logo=php)
 ![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql)
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis)
