@@ -11,7 +11,15 @@ $user = $this->getUser();
 <!-- Hero -->
 <div class="profile-hero">
     <div class="profile-avatar-wrap">
-        <div class="profile-avatar"><?= strtoupper(substr(\App\Helpers\Session::getUserName(), 0, 1)) ?></div>
+        <div class="c-avatar-ring">
+            <div class="profile-avatar"><?= strtoupper(substr(\App\Helpers\Session::getUserName(), 0, 1)) ?></div>
+            <svg class="c-avatar-ring-svg" viewBox="0 0 44 44">
+                <circle class="c-avatar-ring-bg" cx="22" cy="22" r="20"/>
+                <circle class="c-avatar-ring-fg" cx="22" cy="22" r="20"
+                    stroke-dasharray="125.6"
+                    stroke-dashoffset="<?= 125.6 - ($level['progress'] / 100) * 125.6 ?>"/>
+            </svg>
+        </div>
     </div>
     <div class="profile-name"><?= htmlspecialchars(\App\Helpers\Session::getUserName()) ?></div>
     <div class="profile-email"><?= htmlspecialchars($user['email'] ?? '') ?></div>

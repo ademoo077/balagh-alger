@@ -29,6 +29,7 @@
         "audit": "Audit",
         "settings": "Paramètres",
         "home": "Accueil",
+        "map": "Carte",
         "feed": "Communauté",
         "profile": "Profil",
         "logout": "Déconnexion",
@@ -51,7 +52,8 @@
         "public_tracking_hint": "Suivre un signalement",
         "audit_hint": "Journal d'audit",
         "monthly_report": "Rapport mensuel",
-        "monthly_report_hint": "PDF mensuel"
+        "monthly_report_hint": "PDF mensuel",
+        "ai": "Assistant IA"
     },
     "auth": {
         "login_title": "Connexion",
@@ -149,7 +151,17 @@
         "commune_stats": "Par commune",
         "communes_assigned": "Communes assignées",
         "heatmap_toggle": "Carte thermique",
-        "pending_review": "En attente de validation"
+        "pending_review": "En attente de validation",
+        "commune_ranking": "Classement des communes",
+        "charge_prediction": "Prévision charge",
+        "activity_heatmap": "Activité — Heures / Jours",
+        "last_3_months": "3 derniers mois",
+        "no_activity_data": "Aucune donnée d'activité disponible",
+        "commune_this_month": "Ce mois",
+        "resolution_rate_pct": "Taux résolution %",
+        "prediction": "Prévision",
+        "monthly_evolution": "Évolution mensuelle",
+        "status_evolution": "Évolution par statut"
     },
     "reports": {
         "title": "Signalements",
@@ -321,11 +333,11 @@
     },
     "statuses": {
         "submitted": "Soumis",
-        "acknowledged": "Accusé",
+        "acknowledged": "Pris en compte",
         "assigned": "Assigné",
         "in_progress": "En cours",
-        "pending_review": "À vérifier",
-        "pending_unite": "Validation U.",
+        "pending_review": "En attente de validation",
+        "pending_unite": "En attente unité",
         "validated": "Validé",
         "resolved": "Résolu",
         "closed": "Clôturé",
@@ -412,7 +424,8 @@
         "user_updated": "Utilisateur mis à jour.",
         "user_deleted": "Utilisateur supprimé.",
         "status_updated": "Statut mis à jour.",
-        "total_users": "Utilisateurs"
+        "total_users": "Utilisateurs",
+        "confirm_delete": "Supprimer cet utilisateur ?"
     },
     "stats": {
         "reports": "Signalements"
@@ -576,7 +589,24 @@
         "validate_permission": "Vous n'avez pas la permission de valider.",
         "close_permission": "Vous n'avez pas la permission de clôturer ce signalement.",
         "close_success": "Dossier clôturé définitivement.",
-        "close_default_note": "Clôturé par l'administration"
+        "close_default_note": "Clôturé par l'administration",
+        "search_filters": "Filtres de recherche",
+        "search_placeholder": "Rechercher par code ou titre",
+        "active_filters": "Filtres actifs",
+        "filter": "Filtrer",
+        "assignment": "Affectation",
+        "assigned_label": "Affecté",
+        "unassigned": "Non affecté",
+        "category": "Catégorie",
+        "all_categories": "Toutes les catégories",
+        "daira": "Daïra",
+        "all_dairas": "Toutes les daïras",
+        "commune": "Commune",
+        "all_communes": "Toutes les communes",
+        "organization": "Organisation",
+        "all_orgs": "Toutes les organisations",
+        "date_from": "Date début",
+        "date_to": "Date fin"
     },
     "notifications": {
         "title": "Notifications",
@@ -762,7 +792,10 @@
         "model": "Modèle",
         "subcategory": "Sous-catégorie",
         "edit_profile": "Modifier le profil",
-        "new": "Nouveau"
+        "new": "Nouveau",
+        "error_loading": "Erreur de chargement",
+        "urgent_reports": "Signalements urgents",
+        "no_urgent": "Aucun urgent"
     },
     "errors": {
         "404_title": "404 - Page non trouvée",
@@ -806,19 +839,6 @@
         "days_overdue": "En retard de :count jour(s)",
         "completed": "Terminé",
         "deadline": "Délai"
-    },
-    "statuses": {
-        "submitted": "Soumis",
-        "acknowledged": "Pris en compte",
-        "assigned": "Assigné",
-        "in_progress": "En cours",
-        "pending_review": "En attente de validation",
-        "pending_unite": "En attente unité",
-        "validated": "Validé",
-        "resolved": "Résolu",
-        "closed": "Clôturé",
-        "rejected": "Rejeté",
-        "unknown": "Inconnu"
     },
     "impact": {
         "title": "Votre impact",
@@ -972,7 +992,9 @@
         "toggle_visibility": "Basculer la visibilité",
         "are_you_sure": "Êtes-vous sûr ?",
         "irreversible_action": "Cette action est irréversible.",
-        "copied": "Copié !"
+        "copied": "Copié !",
+        "heatmap_low": "Peu",
+        "heatmap_high": "Beaucoup"
     },
     "chatbot": {
         "title": "Assistant Balagh",
@@ -1024,5 +1046,13 @@
         "account_text": "Un <strong>compte gratuit</strong> est nécessaire pour signaler et suivre vos demandes.<br><br>• Cliquez sur <strong>\"Créer un compte\"</strong> sur la page de connexion<br>• Remplissez votre nom et email<br>• Vous pouvez ensuite vous connecter depuis n'importe quelle page.<br><br>Votre compte vous permet de recevoir des <strong>notifications</strong> et de suivre vos signalements.",
         "notif_text": "Vous recevez des <strong>notifications</strong> automatiques à chaque étape :<br><br>• Quand votre signalement est <strong>pris en compte</strong><br>• Quand un agent <strong>intervient</strong> sur le terrain<br>• Quand le problème est <strong>résolu</strong><br><br>Consultez-les via l'icône <i class=\"fas fa-bell\"></i> dans le menu.",
         "contact_text": "Pour toute <strong>question</strong> ou <strong>urgence</strong> :<br><br>• Utilisez ce chat pour comprendre la plateforme<br>• Contactez la <strong>Wilaya d'Alger</strong> pour les urgences<br>• Vos signalements sont traités par les organismes compétents (SEAAL, Sonelgaz, DTP, etc.)"
+    },
+    "ai": {
+        "online": "En ligne",
+        "clear": "Effacer la conversation",
+        "placeholder": "Posez une question sur les signalements...",
+        "welcome": "Bonjour ! Je suis l'assistant IA de Balagh Alger.\n\nJe peux vous aider à analyser les signalements, les statistiques, les tendances, et plus encore. Posez-moi une question !",
+        "just_now": "À l'instant",
+        "disclaimer": "Assistant IA piloté par Gemini — les réponses sont générées automatiquement"
     }
 }

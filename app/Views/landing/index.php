@@ -53,7 +53,7 @@ $isRtl = \App\Helpers\I18n::isRtl();
         .landing-nav.scrolled { padding: 0.5rem 0; background: var(--glass); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-bottom: 1px solid rgba(255,255,255,0.06); box-shadow: 0 4px 30px rgba(0,0,0,0.2); }
         [data-bs-theme="light"] .landing-nav.scrolled { border-bottom-color: rgba(0,0,0,0.06); }
         .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; }
-        .nav-brand-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--gradient-accent); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem; box-shadow: 0 4px 15px rgba(99,102,241,0.3); transition: transform 0.3s; }
+        .nav-brand-icon { width: 40px; height: 40px; border-radius: 12px; background: none; display: block; color: #fff; transition: transform 0.3s; overflow: hidden; object-fit: contain; }
         .nav-brand:hover .nav-brand-icon { transform: rotate(-10deg) scale(1.05); }
         .nav-links { display: flex; align-items: center; gap: 0.35rem; }
         .nav-links a { padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.82rem; font-weight: 500; color: var(--text-muted); transition: all 0.25s; }
@@ -410,7 +410,7 @@ $isRtl = \App\Helpers\I18n::isRtl();
 <nav class="landing-nav" id="landingNav">
     <div class="container d-flex align-items-center justify-content-between">
         <a href="/" class="nav-brand">
-            <div class="nav-brand-icon"><i class="fas fa-shield-halved"></i></div>
+            <img src="/assets/img/balagh-alger-logo.png" alt="<?= __('app.name') ?>" class="nav-brand-icon">
             <span><?= __('app.name') ?></span>
         </a>
         <div class="nav-links" id="navLinks">

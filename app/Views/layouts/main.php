@@ -27,7 +27,16 @@ $csrfToken = $csrfToken ?? (\App\Helpers\Session::get('csrf_token') ?? \App\Help
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <meta name="csrf-token" content="<?= $csrfToken ?>">
     <script>
-    (function(){var t=localStorage.getItem('balagh-theme');if(t){document.documentElement.setAttribute('data-bs-theme',t);}})();
+    (function(){
+        var t=localStorage.getItem('balagh-theme');
+        if(t){document.documentElement.setAttribute('data-bs-theme',t);}
+        else if(window.matchMedia('(prefers-color-scheme:light)').matches){
+            document.documentElement.setAttribute('data-bs-theme','light');
+        }
+        window.matchMedia('(prefers-color-scheme:light)').addEventListener('change',function(e){
+            if(!localStorage.getItem('balagh-theme')) document.documentElement.setAttribute('data-bs-theme',e.matches?'light':'dark');
+        });
+    })();
     </script>
     <script>
     window.__translations = <?= file_get_contents(__DIR__ . '/../../../lang/' . $currentLang . '.json') ?>;
@@ -162,6 +171,16 @@ $csrfToken = $csrfToken ?? (\App\Helpers\Session::get('csrf_token') ?? \App\Help
                     <i class="fas fa-th-large"></i>
                     <span><?= __('nav.dashboard') ?></span>
                 </a>
+                <?php if ($rbacSidebar::minLevel(7)): ?>
+                <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/command-center' ? 'active' : '' ?>" href="/command-center">
+                    <i class="fas fa-tv" style="color:var(--accent);"></i>
+                    <span style="color:var(--accent);">Command Center</span>
+                </a>
+                <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/ai/') ? 'active' : '' ?>" href="/ai/chat">
+                    <i class="fas fa-brain" style="color:var(--purple);"></i>
+                    <span style="color:var(--purple);"><?= __('nav.ai') ?></span>
+                </a>
+                <?php endif; ?>
                 <div class="nav-section"><?= __('nav.reports') ?></div>
                 <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/reports') ? 'active' : '' ?>" href="/reports">
                     <i class="fas fa-flag"></i>
@@ -233,9 +252,13 @@ $csrfToken = $csrfToken ?? (\App\Helpers\Session::get('csrf_token') ?? \App\Help
                 </a>
                 <?php endif; ?>
                 <?php if ($rbacSidebar::canManageSettings()): ?>
-                <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/settings') ? 'active' : '' ?>" href="/settings">
+                <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/settings' ? 'active' : '' ?>" href="/settings">
                     <i class="fas fa-cog"></i>
                     <span><?= __('nav.settings') ?></span>
+                </a>
+                <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/settings/roles') ? 'active' : '' ?>" href="/settings/roles" style="padding-left:44px;font-size:0.85rem;">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Rôles &amp; Permissions</span>
                 </a>
                 <?php endif; ?>
                 <?php endif; ?>

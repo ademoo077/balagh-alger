@@ -697,4 +697,272 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     })();
+
+    // Notification polling (every 30s)
+    (function pollNotifications() {
+        var badge = document.getElementById('notif-badge');
+        if (!badge) return;
+        fetch('/api/notifications/count', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+            .then(function(data) {
+                badge.textContent = data.count > 0 ? (data.count > 99 ? '99+' : data.count) : '';
+                badge.style.display = data.count > 0 ? 'inline-block' : 'none';
+            })
+            .catch(function() {});
+        setTimeout(pollNotifications, 30000);
+    })();
+
+    // Chart fullscreen toggle
+    document.querySelectorAll('.chart-fullscreen-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var card = this.closest('.card');
+            if (card.classList.contains('fullscreen-chart')) {
+                card.classList.remove('fullscreen-chart');
+                this.innerHTML = '<i class="fas fa-expand"></i>';
+            } else {
+                card.classList.add('fullscreen-chart');
+                this.innerHTML = '<i class="fas fa-compress"></i>';
+            }
+            setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 100);
+        });
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.card.fullscreen-chart').forEach(function(card) {
+                card.classList.remove('fullscreen-chart');
+                var btn = card.querySelector('.chart-fullscreen-btn');
+                if (btn) btn.innerHTML = '<i class="fas fa-expand"></i>';
+            });
+            window.dispatchEvent(new Event('resize'));
+        }
+    });
+
+    // Dashboard drag & drop reorder
+    (function() {
+        var container = document.querySelector('#charts-container');
+        if (!container) return;
+        var items = container.querySelectorAll('.chart-draggable');
+        if (!items.length) return;
+        var storageKey = 'dashboard_order_' + window.location.pathname;
+        var savedOrder = null;
+        try { savedOrder = JSON.parse(localStorage.getItem(storageKey)); } catch(e) {}
+        if (savedOrder && savedOrder.length === items.length) {
+            var orderMap = {};
+            items.forEach(function(item) { orderMap[item.dataset.id] = item; });
+            savedOrder.forEach(function(id) {
+                if (orderMap[id]) container.appendChild(orderMap[id]);
+            });
+        }
+        var draggedItem = null;
+        items.forEach(function(item) {
+            item.setAttribute('draggable', 'true');
+            item.addEventListener('dragstart', function(e) {
+                draggedItem = this;
+                this.classList.add('dashboard-dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            item.addEventListener('dragend', function() {
+                this.classList.remove('dashboard-dragging');
+                items.forEach(function(i) { i.classList.remove('dashboard-drop-zone', 'over'); });
+                draggedItem = null;
+                var order = [];
+                container.querySelectorAll('.chart-draggable').forEach(function(i) { order.push(i.dataset.id); });
+                try { localStorage.setItem(storageKey, JSON.stringify(order)); } catch(e) {}
+            });
+            item.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                this.classList.add('over');
+            });
+            item.addEventListener('dragleave', function() {
+                this.classList.remove('over');
+            });
+            item.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('over');
+                if (draggedItem && draggedItem !== this) {
+                    var allItems = Array.from(container.querySelectorAll('.chart-draggable'));
+                    var dragIdx = allItems.indexOf(draggedItem);
+                    var dropIdx = allItems.indexOf(this);
+                    if (dragIdx < dropIdx) {
+                        container.insertBefore(draggedItem, this.nextSibling);
+                    } else {
+                        container.insertBefore(draggedItem, this);
+                    }
+                }
+            });
+        });
+    })();
+
+    // ============ AI CHAT ============
+    (function() {
+        var messagesEl = document.getElementById('aiMessages');
+        var inputEl = document.getElementById('aiInput');
+        var sendBtn = document.getElementById('aiSendBtn');
+        var clearBtn = document.getElementById('aiClearBtn');
+        if (!messagesEl || !inputEl || !sendBtn) return;
+
+        var history = [];
+        var isSending = false;
+
+        function formatText(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/`(.+?)`/g, '<code>$1</code>');
+        }
+
+        function addMessage(role, text, isHtml) {
+            var div = document.createElement('div');
+            div.className = 'ai-message ai-message-' + role;
+            var avatarIcon = role === 'assistant' ? 'fa-brain' : 'fa-user';
+            var content = isHtml ? text : formatText(text);
+            div.innerHTML =
+                '<div class="ai-message-avatar"><i class="fas ' + avatarIcon + '"></i></div>' +
+                '<div class="ai-message-content">' +
+                    '<div class="ai-message-text">' + content + '</div>' +
+                    '<div class="ai-message-time">' + (window.I18n ? I18n.t('ai.just_now') : 'À l\'instant') + '</div>' +
+                '</div>';
+            messagesEl.appendChild(div);
+            requestAnimationFrame(function() {
+                messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
+            });
+        }
+
+        function addLoading() {
+            var div = document.createElement('div');
+            div.className = 'ai-message ai-message-assistant ai-message-loading';
+            div.id = 'aiLoadingMsg';
+            div.innerHTML =
+                '<div class="ai-message-avatar"><i class="fas fa-brain"></i></div>' +
+                '<div class="ai-message-content">' +
+                    '<div class="ai-message-text"><div class="ai-typing-dots"><span></span><span></span><span></span></div></div>' +
+                '</div>';
+            messagesEl.appendChild(div);
+            requestAnimationFrame(function() {
+                messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
+            });
+        }
+
+        function removeLoading() {
+            var loading = document.getElementById('aiLoadingMsg');
+            if (loading) {
+                loading.style.transition = 'opacity 0.2s';
+                loading.style.opacity = '0';
+                setTimeout(function() { loading.remove(); }, 200);
+            }
+        }
+
+        function sendMessage(message) {
+            if (isSending) return;
+            var text = message || inputEl.value.trim();
+            if (!text) return;
+
+            isSending = true;
+            addMessage('user', text);
+            history.push({ role: 'user', parts: [{ text: text }] });
+            if (!message) {
+                inputEl.value = '';
+                inputEl.style.height = 'auto';
+            }
+            sendBtn.disabled = true;
+            addLoading();
+
+            fetch('/api/ai/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ message: text, history: history })
+            })
+            .then(function(resp) {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.json();
+            })
+            .then(function(data) {
+                removeLoading();
+                if (data.error) {
+                    addMessage('assistant', 'Erreur : ' + data.error.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+                } else {
+                    var reply = data.reply || 'Désolé, je n\'ai pas pu générer une réponse.';
+                    addMessage('assistant', reply, true);
+                    history.push({ role: 'model', parts: [{ text: data.reply }] });
+                }
+            })
+            .catch(function(err) {
+                removeLoading();
+                addMessage('assistant', 'Erreur réseau. Veuillez vérifier votre connexion et réessayer.', true);
+            })
+            .finally(function() {
+                isSending = false;
+            });
+        }
+
+        // Auto-resize textarea
+        inputEl.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            sendBtn.disabled = !this.value.trim() || isSending;
+        });
+
+        inputEl.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', function() { sendMessage(); });
+
+        // Clear conversation
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Effacer la conversation ?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Oui, effacer',
+                        cancelButtonText: 'Annuler',
+                        confirmButtonColor: '#6366f1'
+                    }).then(function(result) {
+                        if (result.isConfirmed) {
+                            messagesEl.querySelectorAll('.ai-message:not(:first-child)').forEach(function(el) { el.remove(); });
+                            history = [];
+                            var welcome = messagesEl.querySelector('.ai-message:first-child');
+                            if (welcome) welcome.style.animation = 'none';
+                        }
+                    });
+                } else {
+                    messagesEl.querySelectorAll('.ai-message:not(:first-child)').forEach(function(el) { el.remove(); });
+                    history = [];
+                }
+            });
+        }
+
+        // Theme toggle for AI chat
+        var themeBtn = document.getElementById('aiThemeBtn');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', function() {
+                var toggle = document.getElementById('themeToggle');
+                if (toggle) toggle.click();
+            });
+        }
+
+        // Welcome suggestions click
+        messagesEl.addEventListener('click', function(e) {
+            var btn = e.target.closest('.ai-suggestion-btn');
+            if (btn) {
+                sendMessage(btn.textContent.trim());
+            }
+        });
+
+        // Focus input on load
+        setTimeout(function() { inputEl.focus(); }, 300);
+    })();
 });

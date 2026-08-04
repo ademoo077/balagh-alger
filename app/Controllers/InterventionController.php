@@ -29,6 +29,43 @@ class InterventionController extends Controller {
             $where .= " AND r.priority = ?";
             $params[] = $_GET['priority'];
         }
+        if (!empty($_GET['category_id'])) {
+            $where .= " AND r.category_id = ?";
+            $params[] = $_GET['category_id'];
+        }
+        if (!empty($_GET['daira_id'])) {
+            $where .= " AND r.daira_id = ?";
+            $params[] = $_GET['daira_id'];
+        }
+        if (!empty($_GET['commune_id'])) {
+            $where .= " AND r.commune_id = ?";
+            $params[] = $_GET['commune_id'];
+        }
+        if (!empty($_GET['organization_id'])) {
+            $where .= " AND r.organization_id = ?";
+            $params[] = $_GET['organization_id'];
+        }
+        if (!empty($_GET['date_from'])) {
+            $where .= " AND r.created_at >= ?";
+            $params[] = $_GET['date_from'] . ' 00:00:00';
+        }
+        if (!empty($_GET['date_to'])) {
+            $where .= " AND r.created_at <= ?";
+            $params[] = $_GET['date_to'] . ' 23:59:59';
+        }
+        if (!empty($_GET['q'])) {
+            $where .= " AND (r.tracking_code LIKE ? OR r.title LIKE ?)";
+            $q = '%' . $_GET['q'] . '%';
+            $params[] = $q;
+            $params[] = $q;
+        }
+        if (!empty($_GET['assigned'])) {
+            if ($_GET['assigned'] === 'unassigned') {
+                $where .= " AND r.assigned_to IS NULL";
+            } elseif ($_GET['assigned'] === 'assigned') {
+                $where .= " AND r.assigned_to IS NOT NULL";
+            }
+        }
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 20;
@@ -57,7 +94,23 @@ class InterventionController extends Controller {
         $stmt->execute($params);
         $reports = $stmt->fetchAll();
 
-        $this->view('interventions/index', compact('reports', 'total', 'totalPages', 'page'));
+        $categories = $db->query("SELECT id, name FROM categories WHERE is_active = 1 ORDER BY name")->fetchAll();
+        $dairas = $db->query("SELECT id, name FROM dairas WHERE is_active = 1 ORDER BY name")->fetchAll();
+        $organizations = $db->query("SELECT id, name FROM organizations WHERE is_active = 1 ORDER BY name")->fetchAll();
+
+        $communes = [];
+        if (!empty($_GET['daira_id'])) {
+            $cs = $db->prepare("SELECT id, name FROM communes WHERE daira_id = ? AND is_active = 1 ORDER BY name");
+            $cs->execute([$_GET['daira_id']]);
+            $communes = $cs->fetchAll();
+        }
+
+        $activeFilters = array_filter($_GET, fn($v) => $v !== '' && $v !== 'page');
+
+        $this->view('interventions/index', compact(
+            'reports', 'total', 'totalPages', 'page',
+            'categories', 'dairas', 'organizations', 'communes', 'activeFilters'
+        ));
     }
 
     public function show(int $id): void {
@@ -197,21 +250,24 @@ class InterventionController extends Controller {
             $this->redirect("/interventions/{$id}");
         }
 
+        $lat = !empty($_POST['latitude']) ? $_POST['latitude'] : null;
+        $lng = !empty($_POST['longitude']) ? $_POST['longitude'] : null;
+
         $stmt = $db->prepare("INSERT INTO report_interventions (report_id, agent_id, status, description, latitude, longitude, started_at)
             VALUES (?, ?, 'in_progress', ?, ?, ?, NOW())");
         $stmt->execute([
             $id,
             $userId,
             $_POST['description'] ?? null,
-            $_POST['latitude'] ?? null,
-            $_POST['longitude'] ?? null,
+            $lat,
+            $lng,
         ]);
 
         $db->prepare("UPDATE reports SET status = 'in_progress' WHERE id = ?")->execute([$id]);
 
         $db->prepare("INSERT INTO report_history (report_id, user_id, action, new_value, latitude, longitude)
             VALUES (?, ?, 'intervention_started', 'Intervention démarrée sur place', ?, ?)")
-            ->execute([$id, $userId, $_POST['latitude'] ?? null, $_POST['longitude'] ?? null]);
+            ->execute([$id, $userId, $lat, $lng]);
 
         if ($report['citizen_id']) {
             $title = __('notifications.intervention_started_title');

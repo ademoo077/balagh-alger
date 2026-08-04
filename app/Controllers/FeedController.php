@@ -5,6 +5,7 @@ use App\Helpers\Database;
 use App\Helpers\Session;
 use App\Helpers\Rbac;
 use App\Helpers\Csrf;
+use App\Helpers\Notification;
 
 class FeedController extends Controller {
 
@@ -18,6 +19,7 @@ class FeedController extends Controller {
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 15;
         $offset = ($page - 1) * $perPage;
+        $userId = Session::getUserId();
 
         $stmt = $db->prepare("
             SELECT p.*, u.first_name, u.last_name, u.avatar,
@@ -31,7 +33,7 @@ class FeedController extends Controller {
             ORDER BY p.created_at DESC
             LIMIT {$perPage} OFFSET {$offset}
         ");
-        $stmt->execute([Session::getUserId()]);
+        $stmt->execute([$userId]);
         $posts = $stmt->fetchAll();
 
         foreach ($posts as &$post) {
@@ -42,6 +44,7 @@ class FeedController extends Controller {
             } else {
                 $post['photos'] = [];
             }
+            $post['user_id'] = (int)$post['user_id'];
         }
 
         $this->view('citizen/feed', compact('posts'));
@@ -78,7 +81,6 @@ class FeedController extends Controller {
         $stmt->execute([$userId, $title ?: 'Publication', $body, $postType, $reportId]);
         $postId = (int)$db->lastInsertId();
 
-        // Photos
         if (!empty($_FILES['photos']['name'][0])) {
             $uploadDir = __DIR__ . '/../../public/uploads/community/';
             if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
@@ -122,6 +124,18 @@ class FeedController extends Controller {
         } else {
             $db->prepare("INSERT INTO community_likes (user_id, post_id) VALUES (?, ?)")->execute([$userId, $postId]);
             $db->prepare("UPDATE community_posts SET likes_count = likes_count + 1 WHERE id = ?")->execute([$postId]);
+
+            $postOwner = $db->prepare("SELECT user_id FROM community_posts WHERE id = ?");
+            $postOwner->execute([$postId]);
+            $ownerId = $postOwner->fetchColumn();
+            if ($ownerId && (int)$ownerId !== $userId) {
+                $userName = Session::getUserName();
+                Notification::create((int)$ownerId, 'like', 'Nouveau like',
+                    "{$userName} a aimé votre publication",
+                    ['post_id' => $postId, 'feed' => true]
+                );
+            }
+
             echo json_encode(['liked' => true]);
         }
     }
@@ -144,6 +158,17 @@ class FeedController extends Controller {
 
         \App\Helpers\Gamification::addPoints($userId, 'comment_created', $postId, 'post');
 
+        $postOwner = $db->prepare("SELECT user_id FROM community_posts WHERE id = ?");
+        $postOwner->execute([$postId]);
+        $ownerId = $postOwner->fetchColumn();
+        if ($ownerId && (int)$ownerId !== $userId) {
+            $userName = Session::getUserName();
+            Notification::create((int)$ownerId, 'comment', 'Nouveau commentaire',
+                "{$userName} a commenté votre publication",
+                ['post_id' => $postId, 'feed' => true]
+            );
+        }
+
         $user = $db->prepare("SELECT first_name, last_name, avatar FROM users WHERE id = ?");
         $user->execute([$userId]);
         $user = $user->fetch();
@@ -153,9 +178,73 @@ class FeedController extends Controller {
             'comment' => [
                 'id' => $commentId,
                 'body' => $body,
+                'user_id' => $userId,
                 'user' => $user,
                 'created_at' => date('Y-m-d H:i:s')
             ]
         ]);
+    }
+
+    public function deletePost(int $postId): void {
+        $this->auth();
+        header('Content-Type: application/json');
+        $token = $_POST['_token'] ?? '';
+        if (!Csrf::verify($token)) { echo json_encode(['success' => false, 'message' => 'CSRF invalide']); return; }
+
+        $db = Database::getConnection();
+        $userId = Session::getUserId();
+
+        $stmt = $db->prepare("SELECT user_id FROM community_posts WHERE id = ? AND deleted_at IS NULL");
+        $stmt->execute([$postId]);
+        $ownerId = $stmt->fetchColumn();
+
+        if (!$ownerId || (int)$ownerId !== $userId) {
+            echo json_encode(['success' => false, 'message' => 'Non autorisé']);
+            return;
+        }
+
+        $db->prepare("UPDATE community_posts SET deleted_at = NOW() WHERE id = ?")->execute([$postId]);
+        echo json_encode(['success' => true]);
+    }
+
+    public function deleteComment(int $postId, int $commentId): void {
+        $this->auth();
+        header('Content-Type: application/json');
+        $token = $_POST['_token'] ?? '';
+        if (!Csrf::verify($token)) { echo json_encode(['success' => false, 'message' => 'CSRF invalide']); return; }
+
+        $db = Database::getConnection();
+        $userId = Session::getUserId();
+
+        $stmt = $db->prepare("SELECT user_id FROM community_comments WHERE id = ? AND post_id = ? AND deleted_at IS NULL");
+        $stmt->execute([$commentId, $postId]);
+        $ownerId = $stmt->fetchColumn();
+
+        if (!$ownerId || (int)$ownerId !== $userId) {
+            echo json_encode(['success' => false, 'message' => 'Non autorisé']);
+            return;
+        }
+
+        $db->prepare("UPDATE community_comments SET deleted_at = NOW() WHERE id = ?")->execute([$commentId]);
+        $db->prepare("UPDATE community_posts SET comments_count = GREATEST(0, comments_count - 1) WHERE id = ?")->execute([$postId]);
+        echo json_encode(['success' => true]);
+    }
+
+    public function comments(int $postId): void {
+        $this->auth();
+        header('Content-Type: application/json');
+
+        $db = Database::getConnection();
+        $stmt = $db->prepare("
+            SELECT c.*, u.first_name, u.last_name, u.avatar
+            FROM community_comments c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.post_id = ? AND c.deleted_at IS NULL
+            ORDER BY c.created_at ASC
+        ");
+        $stmt->execute([$postId]);
+        $comments = $stmt->fetchAll();
+
+        echo json_encode(['success' => true, 'comments' => $comments]);
     }
 }

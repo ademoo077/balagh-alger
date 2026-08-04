@@ -49,8 +49,10 @@ class UserController extends Controller {
         $organizations = $db->query("SELECT id, name FROM organizations WHERE is_active = 1 ORDER BY name")->fetchAll();
         $canCreate = Rbac::has('users.create');
         $canSuspend = Rbac::has('users.suspend');
+        $canDelete = Rbac::minLevel(7);
+        $csrfToken = Csrf::generate();
 
-        $this->view('users/index', compact('users', 'roles', 'organizations', 'canCreate', 'canSuspend'));
+        $this->view('users/index', compact('users', 'roles', 'organizations', 'canCreate', 'canSuspend', 'canDelete', 'csrfToken'));
     }
 
     public function create(): void {
@@ -335,6 +337,7 @@ class UserController extends Controller {
         $user['role_id'] = $roleQ->fetchColumn() ?: '';
 
         $csrfToken = Csrf::generate();
+        $canEdit = Rbac::canManageUser($id);
         $this->view('users/edit', compact('user', 'roles', 'organizations', 'dairas', 'csrfToken', 'primaryRole', 'canEdit'));
     }
 

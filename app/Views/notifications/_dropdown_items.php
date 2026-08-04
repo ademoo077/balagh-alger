@@ -1,7 +1,7 @@
 <?php if (empty($notifications)): ?>
 <div class="notif-dropdown-empty"><i class="fas fa-bell-slash d-block mb-2" style="font-size:1.2rem;opacity:0.3;"></i><?= __('notifications.none') ?></div>
 <?php else: foreach ($notifications as $n):
-    $nData = json_decode($n['data'], true) ?? [];
+    $nData = json_decode($n['data'] ?? '', true) ?? [];
     $reportId = $nData['report_id'] ?? null;
     $nUrl = $reportId ? '/reports/' . $reportId : null;
     $typeIcons = [

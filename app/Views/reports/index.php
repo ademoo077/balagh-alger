@@ -53,6 +53,20 @@
     </div>
 
     <!-- Category & Subcategory Dropdowns -->
+    <!-- Period quick filters -->
+    <?php
+    $activePeriod = $_GET['period'] ?? '';
+    $periods = ['today' => 'Aujourd\'hui', 'week' => '7 jours', 'month' => '30 jours'];
+    ?>
+    <div class="c-rf-periods">
+        <?php foreach ($periods as $k => $l): ?>
+        <a href="?period=<?= $k ?><?= $activeSearch ? '&search=' . urlencode($_GET['search'] ?? '') : '' ?><?= $activeStatus ? '&status=' . $activeStatus : '' ?>"
+           class="c-rf-pill c-rf-period <?= $activePeriod === $k ? 'active' : '' ?>">
+            <span><?= $l ?></span>
+        </a>
+        <?php endforeach; ?>
+    </div>
+
     <div class="c-rf-selects">
         <div class="c-rf-select-wrap">
             <i class="fas fa-tag c-rf-select-icon"></i>
@@ -67,6 +81,15 @@
             <i class="fas fa-layer-group c-rf-select-icon"></i>
             <select name="subcategory_id" class="c-rf-select" id="citizenFilterSubcategory">
                 <option value=""><?= __('reports.all_subcategories') ?></option>
+            </select>
+        </div>
+        <div class="c-rf-select-wrap">
+            <i class="fas fa-location-dot c-rf-select-icon"></i>
+            <select name="commune_id" class="c-rf-select">
+                <option value=""><?= __('reports.all_communes') ?></option>
+                <?php foreach ($communes ?? [] as $com): ?>
+                <option value="<?= $com['id'] ?>" <?= ($_GET['commune_id'] ?? '') == $com['id'] ? 'selected' : '' ?>><?= htmlspecialchars($com['name']) ?></option>
+                <?php endforeach; ?>
             </select>
         </div>
         <button type="submit" form="citizenFilterForm" class="c-rf-apply" title="<?= __('common.filter') ?>">

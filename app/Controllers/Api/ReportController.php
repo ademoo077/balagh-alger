@@ -11,7 +11,7 @@ class ReportController extends Controller {
         $isCitizen = $userId && \App\Helpers\Rbac::isRole('citizen');
 
         $sql = "SELECT r.id, r.tracking_code, r.title, r.status, r.priority, r.latitude, r.longitude,
-            r.created_at, r.citizen_id,
+            r.created_at, r.citizen_id, r.category_id,
             c.name as category_name, c.icon as category_icon, c.color as category_color,
             com.name as commune_name
             FROM reports r

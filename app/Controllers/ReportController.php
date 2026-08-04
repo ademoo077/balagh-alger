@@ -67,6 +67,17 @@ class ReportController extends Controller {
             $params[] = $search;
             $params[] = $search;
         }
+        if (!empty($_GET['commune_id'])) {
+            $where .= " AND r.commune_id = ?";
+            $params[] = (int)$_GET['commune_id'];
+        }
+        if (!empty($_GET['period'])) {
+            $periodMap = ['today' => 1, 'week' => 7, 'month' => 30];
+            $days = $periodMap[$_GET['period']] ?? 0;
+            if ($days > 0) {
+                $where .= " AND r.created_at >= DATE_SUB(NOW(), INTERVAL {$days} DAY)";
+            }
+        }
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 20;
@@ -94,13 +105,14 @@ class ReportController extends Controller {
 
         $categories = $db->query("SELECT id, name FROM categories WHERE is_active = 1 ORDER BY name")->fetchAll();
         $dairas = $db->query("SELECT id, name FROM dairas WHERE is_active = 1 ORDER BY name")->fetchAll();
+        $communes = $db->query("SELECT id, name FROM communes WHERE is_active = 1 ORDER BY name")->fetchAll();
 
         $isAdmin = Rbac::minLevel(6);
         $isCitizen = Rbac::isRole('citizen');
         $canExport = Rbac::has('reports.export');
         $canCreate = Rbac::has('reports.create');
 
-        $this->view('reports/index', compact('reports', 'categories', 'dairas', 'total', 'totalPages', 'page', 'isAdmin', 'isCitizen', 'canExport', 'canCreate'));
+        $this->view('reports/index', compact('reports', 'categories', 'dairas', 'communes', 'total', 'totalPages', 'page', 'isAdmin', 'isCitizen', 'canExport', 'canCreate'));
     }
 
     public function create(): void {
@@ -245,12 +257,20 @@ class ReportController extends Controller {
         $this->redirect('/reports/' . $reportId);
     }
 
-    public function show(int $id): void {
+    public function show(int|string $id): void {
         $this->auth();
         $this->applyCitizenLayout();
-        $report = $this->getReportOrRedirect($id);
         $db = Database::getConnection();
 
+        if (is_string($id)) {
+            $stmt = $db->prepare("SELECT id FROM reports WHERE tracking_code = ? AND deleted_at IS NULL LIMIT 1");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch();
+            if (!$row) { $this->redirect('/reports'); return; }
+            $id = (int)$row['id'];
+        }
+
+        $report = $this->getReportOrRedirect($id);
         $db->prepare("UPDATE reports SET view_count = view_count + 1 WHERE id = ?")->execute([$id]);
 
         $images = $db->prepare("SELECT * FROM report_images WHERE report_id = ? ORDER BY is_primary DESC");
@@ -681,6 +701,42 @@ class ReportController extends Controller {
         header('Content-Length: ' . strlen($pdf));
         echo $pdf;
         exit;
+    }
+
+    public function delete(int $id): void {
+        $this->auth();
+        $this->checkCsrf("/reports/{$id}");
+
+        if (!Rbac::isRole('admin_central')) {
+            $this->withError('Seul l\'admin central peut supprimer des signalements.');
+            $this->redirect("/reports/{$id}");
+        }
+
+        $db = Database::getConnection();
+        $report = $db->prepare("SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL");
+        $report->execute([$id]);
+        $report = $report->fetch();
+
+        if (!$report) {
+            $this->withError('Signalement non trouvé.');
+            $this->redirect('/reports');
+        }
+
+        $db->prepare("UPDATE reports SET deleted_at = NOW() WHERE id = ?")->execute([$id]);
+
+        $db->prepare("INSERT INTO report_history (report_id, user_id, action, new_value) VALUES (?, ?, 'deleted', 'Signalement supprimé')")
+            ->execute([$id, Session::getUserId()]);
+
+        $this->audit('delete', 'Report', $id, ['tracking_code' => $report['tracking_code']], null);
+
+        if ($report['citizen_id']) {
+            Notification::create($report['citizen_id'], 'report_deleted', 'Signalement supprimé',
+                "Votre signalement {$report['tracking_code']} a été supprimé par l'administration.",
+                ['report_id' => $id]);
+        }
+
+        $this->withSuccess('Signalement supprimé avec succès.');
+        $this->redirect('/reports');
     }
 
     public function rate(int $id): void {

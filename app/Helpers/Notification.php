@@ -5,10 +5,15 @@ use App\Helpers\Database;
 use App\Helpers\Queue;
 
 class Notification {
-    public static function create(int $userId, string $type, string $title, string $message, $data = null): void {
-        Database::getConnection()->prepare(
+    public static function create(int $userId, string $type, string $title, string $message, $data = null, bool $push = true): void {
+        $db = Database::getConnection();
+        $db->prepare(
             "INSERT INTO notifications (user_id, type, title, message, data) VALUES (?, ?, ?, ?, ?)"
         )->execute([$userId, $type, $title, $message, $data ? json_encode($data) : null]);
+
+        if ($push) {
+            self::sendPushNow($userId, $title, $message);
+        }
     }
 
     public static function dispatch(int $userId, string $type, string $title, string $message, $data = null, bool $push = true): void {
@@ -18,10 +23,7 @@ class Notification {
                 'message' => $message, 'data' => $data, 'push' => $push,
             ]);
         } else {
-            self::create($userId, $type, $title, $message, $data);
-            if ($push) {
-                self::sendPushNow($userId, $title, $message);
-            }
+            self::create($userId, $type, $title, $message, $data, $push);
         }
     }
 

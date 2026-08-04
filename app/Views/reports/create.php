@@ -688,6 +688,15 @@
     document.getElementById('latitude').addEventListener('input', debounceSimilar);
     document.getElementById('longitude').addEventListener('input', debounceSimilar);
 
+    // === Double-submit prevention ===
+    document.getElementById('reportForm').addEventListener('submit', function() {
+        var btn = this.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Envoi en cours...';
+        }
+    });
+
     // Intercept programmatic value changes (map click, GPS button)
     function interceptValue(el) {
         var descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');

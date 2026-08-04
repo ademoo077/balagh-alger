@@ -60,7 +60,14 @@ $userLevel = \App\Helpers\Gamification::getLevel(\App\Helpers\Session::getUserId
 
 <?php if (empty($leaderboard)): ?>
 <div class="c-empty c-anim-fade">
-    <i class="fas fa-ranking-star"></i>
+    <svg class="c-empty-svg" viewBox="0 0 140 120" fill="none">
+        <circle class="c-sv-circle" cx="70" cy="60" r="50"/>
+        <path class="c-sv-icon c-sv-float" d="M48 76l8-26 10 20 12-30 10 36" stroke="var(--c-amber)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="48" cy="76" r="4" fill="var(--c-amber)" opacity="0.5"/>
+        <circle cx="88" cy="50" r="4" fill="var(--c-accent)" opacity="0.5"/>
+        <circle class="c-sv-dot" cx="36" cy="38" r="4"/>
+        <circle class="c-sv-dot" cx="106" cy="42" r="3"/>
+    </svg>
     <h5>Aucun participant</h5>
     <p>Soyez le premier à gagner des points !</p>
 </div>

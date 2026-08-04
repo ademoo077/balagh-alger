@@ -5,6 +5,11 @@
 (function() {
     'use strict';
 
+    // Haptic feedback helper
+    function vibrate(ms) {
+        if (navigator.vibrate) navigator.vibrate(ms || 15);
+    }
+
     // Toast notification
     window.CToast = {
         show: function(msg, type) {
@@ -22,25 +27,26 @@
     var sunIcon = document.getElementById('cThemeIconSun');
     var moonIcon = document.getElementById('cThemeIconMoon');
     function updateThemeIcons() {
-        var isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         if (sunIcon) sunIcon.style.display = isDark ? 'inline' : 'none';
         if (moonIcon) moonIcon.style.display = isDark ? 'none' : 'inline';
     }
     if (themeBtn) {
         updateThemeIcons();
         themeBtn.addEventListener('click', function() {
-            var current = document.documentElement.getAttribute('data-bs-theme');
+            vibrate();
+            var current = document.documentElement.getAttribute('data-theme');
             var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
             document.documentElement.setAttribute('data-bs-theme', next);
             localStorage.setItem('balagh-theme', next);
             updateThemeIcons();
         });
     }
-
-    // Language toggle
     var langBtn = document.getElementById('cLangToggle');
     if (langBtn) {
         langBtn.addEventListener('click', function() {
+            vibrate();
             var cur = document.documentElement.lang === 'ar' ? 'fr' : 'ar';
             if (window.I18n && window.I18n.setLang) {
                 window.I18n.setLang(cur);
@@ -74,6 +80,23 @@
             }
         });
     }
+
+    // Back to top
+    var backToTop = document.getElementById('cBackToTop');
+    if (backToTop) {
+        window.addEventListener('scroll', function() {
+            backToTop.classList.toggle('visible', window.scrollY > 400);
+        });
+        backToTop.addEventListener('click', function() {
+            vibrate();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    // Haptic feedback on bottom nav taps
+    document.querySelectorAll('.c-nav-item').forEach(function(el) {
+        el.addEventListener('click', function() { vibrate(10); });
+    });
 
     // Scroll animations
     function initScrollAnimations() {
@@ -123,7 +146,22 @@
             L.control.zoom({ position: 'topright' }).addTo(map);
 
             if (reports && reports.length) {
-                var markers = L.markerClusterGroup && L.markerClusterGroup() || L.layerGroup();
+                var markers = (typeof L.markerClusterGroup === 'function') ? L.markerClusterGroup({
+                    chunkedLoading: true,
+                    maxClusterRadius: 50,
+                    spiderfyOnMaxZoom: true,
+                    showCoverageOnHover: false,
+                    zoomToBoundsOnClick: true,
+                    iconCreateFunction: function(cluster) {
+                        var count = cluster.getChildCount();
+                        var size = count < 10 ? 'small' : count < 50 ? 'medium' : 'large';
+                        return L.divIcon({
+                            className: 'balagh-cluster balagh-cluster-' + size,
+                            html: '<div><span>' + count + '</span></div>',
+                            iconSize: L.point(40, 40)
+                        });
+                    }
+                }) : L.layerGroup();
                 reports.forEach(function(r) {
                     if (!r.latitude || !r.longitude) return;
                     var color = r.status === 'resolved' || r.status === 'validated' ? '#22c55e' :
@@ -164,6 +202,146 @@
         }
     };
 
+    // Offline Manager
+    window.OfflineManager = {
+        bar: null,
+        badge: null,
+        isOffline: false,
+        pendingCount: 0,
+
+        init: function() {
+            this.bar = document.getElementById('offlineBar');
+            this.badge = document.getElementById('pendingBadge');
+            if (this.bar) {
+                this.bar.addEventListener('click', function() {
+                    if (navigator.onLine) window.OfflineManager.hideBar();
+                    else if (window.OfflineManager.pendingCount > 0) {
+                        window.OfflineManager.triggerSync();
+                    }
+                });
+            }
+            this.checkStatus();
+            window.addEventListener('online', function() { window.OfflineManager.onOnline(); });
+            window.addEventListener('offline', function() { window.OfflineManager.onOffline(); });
+            if (navigator.connection) {
+                navigator.connection.addEventListener('change', function() {
+                    if (navigator.onLine) window.OfflineManager.onOnline();
+                    else window.OfflineManager.onOffline();
+                });
+            }
+            this.pollPending();
+            this.listenForMessages();
+        },
+
+        checkStatus: function() {
+            if (!navigator.onLine) this.showBar('Vous êtes hors ligne', 'offline');
+            else this.hideBar();
+        },
+
+        onOffline: function() {
+            this.isOffline = true;
+            this.showBar('Vous êtes hors ligne', 'offline');
+        },
+
+        onOnline: function() {
+            this.isOffline = false;
+            if (this.pendingCount > 0) {
+                this.showBar('Envoi des signalements en attente...', 'syncing');
+                this.triggerSync();
+            } else {
+                this.showBar('Connexion rétablie', 'online');
+                var self = this;
+                setTimeout(function() { self.hideBar(); }, 2000);
+            }
+        },
+
+        showBar: function(msg, type) {
+            if (!this.bar) return;
+            this.bar.className = 'c-offline-bar ' + (type || '');
+            var icon = type === 'offline' ? 'fa-wifi-slash' : type === 'syncing' ? 'fa-sync fa-spin' : 'fa-check-circle';
+            var countHtml = this.pendingCount > 0 && type !== 'online' ? ' <strong>(' + this.pendingCount + ')</strong>' : '';
+            this.bar.innerHTML = '<i class="fas ' + icon + '"></i> <span>' + msg + countHtml + '</span>';
+            this.bar.style.display = 'flex';
+            document.body.classList.add('has-offline-bar');
+        },
+
+        hideBar: function() {
+            if (!this.bar) return;
+            this.bar.style.display = 'none';
+            document.body.classList.remove('has-offline-bar');
+        },
+
+        pollPending: function() {
+            this.queryPendingCount();
+            setInterval(function() { window.OfflineManager.queryPendingCount(); }, 10000);
+        },
+
+        queryPendingCount: function() {
+            if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+            navigator.serviceWorker.controller.postMessage({ type: 'GET_PENDING_COUNT' });
+        },
+
+        triggerSync: function() {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SYNC_NOW' });
+            }
+        },
+
+        listenForMessages: function() {
+            if (!navigator.serviceWorker) return;
+            navigator.serviceWorker.addEventListener('message', function(event) {
+                if (!event.data) return;
+                switch (event.data.type) {
+                    case 'PENDING_COUNT':
+                        window.OfflineManager.pendingCount = event.data.count;
+                        window.OfflineManager.updateBadge();
+                        break;
+                    case 'SYNC_COMPLETE':
+                        window.OfflineManager.pendingCount = event.data.remaining || 0;
+                        window.OfflineManager.updateBadge();
+                        if (event.data.synced > 0) {
+                            var msg = event.data.synced + ' signalement(s) envoyé(s)';
+                            if (event.data.remaining > 0) msg += '. ' + event.data.remaining + ' restant(s).';
+                            else msg += ' avec succès !';
+                            window.OfflineManager.showBar(msg, 'online');
+                            setTimeout(function() {
+                                if (navigator.onLine) window.OfflineManager.hideBar();
+                            }, 3000);
+                            if (typeof CToast !== 'undefined') {
+                                CToast.show(msg, 'success');
+                            }
+                        } else {
+                            if (navigator.onLine) window.OfflineManager.hideBar();
+                        }
+                        break;
+                    case 'CACHED_REPORTS':
+                        if (window.OfflineManager._cachedReportsCallback) {
+                            window.OfflineManager._cachedReportsCallback(event.data.reports);
+                            window.OfflineManager._cachedReportsCallback = null;
+                        }
+                        break;
+                }
+            });
+        },
+
+        updateBadge: function() {
+            if (!this.badge) return;
+            if (this.pendingCount > 0) {
+                this.badge.textContent = this.pendingCount;
+                this.badge.style.display = 'flex';
+            } else {
+                this.badge.style.display = 'none';
+            }
+        },
+
+        getCachedReports: function(callback) {
+            this._cachedReportsCallback = callback;
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'GET_CACHED_REPORTS' });
+            }
+        }
+    };
+
     // Voice input helper
     window.CVoice = {
         available: function() {
@@ -183,11 +361,174 @@
         }
     };
 
+    // ============ SPLASH SCREEN ============
+    window.SplashScreen = {
+        el: null,
+        init: function() {
+            this.el = document.getElementById('splashScreen');
+            if (!this.el) return;
+            if (sessionStorage.getItem('balagh-splash-hidden')) {
+                this.el.style.display = 'none';
+                return;
+            }
+            var self = this;
+            window.addEventListener('load', function() {
+                setTimeout(function() { self.hide(); }, 600);
+            });
+            setTimeout(function() { self.hide(); }, 3000);
+        },
+        hide: function() {
+            if (!this.el) return;
+            this.el.classList.add('hidden');
+            sessionStorage.setItem('balagh-splash-hidden', '1');
+            var self = this;
+            setTimeout(function() { if (self.el) self.el.style.display = 'none'; }, 400);
+        }
+    };
+
+    // ============ PAGE TRANSITIONS ============
+    window.PageTransitions = {
+        init: function() {
+            var main = document.getElementById('cMain');
+            if (!main) return;
+            main.classList.add('c-page-enter');
+            var self = this;
+            document.querySelectorAll('a:not([target]):not([download]):not([href^="#"]):not([href^="javascript"]):not([href^="tel"]):not([href^="mailto"])').forEach(function(a) {
+                var href = a.getAttribute('href');
+                if (!href || href.startsWith('http') || href.startsWith('//')) return;
+                a.addEventListener('click', function(e) {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                    e.preventDefault();
+                    self.navigate(href);
+                });
+            });
+        },
+        navigate: function(url) {
+            var main = document.getElementById('cMain');
+            if (!main) { window.location.href = url; return; }
+            main.classList.remove('c-page-enter');
+            main.classList.add('c-page-leave');
+            var self = this;
+            setTimeout(function() { window.location.href = url; }, 200);
+        }
+    };
+
+    // ============ SKELETON LOADER ============
+    window.SkeletonLoader = {
+        show: function(container, count) {
+            var el = typeof container === 'string' ? document.querySelector(container) : container;
+            if (!el) return;
+            var html = '';
+            var n = count || 3;
+            for (var i = 0; i < n; i++) {
+                html += '<div class="c-skeleton-card">' +
+                    '<div class="c-skeleton c-skeleton-heading"></div>' +
+                    '<div class="c-skeleton c-skeleton-text"></div>' +
+                    '<div class="c-skeleton c-skeleton-text" style="width:75%"></div>' +
+                    '</div>';
+            }
+            el._skeletonOrig = el.innerHTML;
+            el.innerHTML = html;
+        },
+        hide: function(container) {
+            var el = typeof container === 'string' ? document.querySelector(container) : container;
+            if (!el || !el._skeletonOrig) return;
+            el.innerHTML = el._skeletonOrig;
+            delete el._skeletonOrig;
+        }
+    };
+
+    // ============ PULL-TO-REFRESH ============
+    window.PullToRefresh = {
+        enabled: true,
+        startY: 0,
+        pulling: false,
+        ptrEl: null,
+        threshold: 80,
+        callback: null,
+        init: function(opts) {
+            this.callback = (opts && opts.onRefresh) || function() { location.reload(); };
+            this.ptrEl = document.getElementById('cPtr') || this.createEl();
+            var self = this;
+            document.addEventListener('touchstart', function(e) {
+                if (!self.enabled || window.scrollY > 0) return;
+                self.startY = e.touches[0].clientY;
+                self.pulling = false;
+            }, { passive: true });
+            document.addEventListener('touchmove', function(e) {
+                if (!self.enabled || window.scrollY > 0) return;
+                var dy = e.touches[0].clientY - self.startY;
+                if (dy > 0) {
+                    self.pulling = true;
+                    if (dy > self.threshold) {
+                        self.ptrEl.classList.add('release');
+                    } else {
+                        self.ptrEl.classList.remove('release');
+                    }
+                    if (dy > 100) dy = 100;
+                    self.ptrEl.style.transform = 'translateY(' + (dy * 0.4) + 'px)';
+                    self.ptrEl.classList.add('visible');
+                }
+            }, { passive: true });
+            document.addEventListener('touchend', function(e) {
+                if (!self.pulling) return;
+                self.pulling = false;
+                self.ptrEl.classList.remove('visible', 'release');
+                self.ptrEl.style.transform = '';
+                if (e.changedTouches[0].clientY - self.startY > self.threshold) {
+                    self.ptrEl.classList.add('loading');
+                    if (self.callback) self.callback();
+                    setTimeout(function() { self.ptrEl.classList.remove('loading'); }, 1000);
+                }
+            }, { passive: true });
+        },
+        createEl: function() {
+            var el = document.createElement('div');
+            el.id = 'cPtr';
+            el.className = 'c-ptr';
+            el.innerHTML = '<div class="c-ptr-content"><i class="fas fa-arrow-down c-ptr-icon"></i> <span>' + (window.__translations?.common?.pull_to_refresh || 'Tirez pour actualiser') + '</span></div>';
+            document.body.prepend(el);
+            return el;
+        }
+    };
+
+    // ============ APP BADGE ============
+    window.AppBadge = {
+        el: null,
+        init: function() {
+            this.el = document.createElement('div');
+            this.el.className = 'c-app-badge';
+            this.el.id = 'appBadge';
+            document.body.appendChild(this.el);
+        },
+        set: function(count) {
+            if (!this.el) return;
+            if (count > 0) {
+                this.el.textContent = count > 99 ? '99+' : count;
+                this.el.classList.add('visible');
+            } else {
+                this.el.classList.remove('visible');
+            }
+        },
+        clear: function() { this.set(0); }
+    };
+
     // Initialize on load
     document.addEventListener('DOMContentLoaded', function() {
         initScrollAnimations();
         animateCounters();
         initLightbox();
+        window.OfflineManager.init();
+        window.SplashScreen.init();
+        window.PageTransitions.init();
+        window.PullToRefresh.init();
+        window.AppBadge.init();
+
+        // Sync app badge with notification count
+        var badgeEl = document.querySelector('.notif-badge');
+        if (badgeEl) {
+            window.AppBadge.set(parseInt(badgeEl.textContent, 10) || 0);
+        }
     });
 
     // Lightbox for citizen gallery images
@@ -283,7 +624,7 @@
             this.buildTopics();
             var self = this;
 
-            this.fab.addEventListener('click', function() { self.toggle(); });
+            this.fab.addEventListener('click', function() { vibrate(); self.toggle(); });
             document.getElementById('chatClose').addEventListener('click', function() { self.close(); });
             if (this.overlay) {
                 this.overlay.addEventListener('click', function() { self.close(); });

@@ -24,6 +24,12 @@ return [
     
     // Dashboard
     'GET /dashboard' => ['DashboardController', 'index'],
+    'GET /command-center' => ['DashboardController', 'commandCenter'],
+    'GET /api/command-center' => ['DashboardController', 'commandCenterApi'],
+
+    // AI Assistant
+    'GET /ai/chat' => ['AiController', 'chat'],
+    'POST /api/ai/ask' => ['AiController', 'ask'],
     
     // Reports
     'GET /reports' => ['ReportController', 'index'],
@@ -39,6 +45,7 @@ return [
     'POST /reports/{id}/comment' => ['ReportController', 'comment'],
     'GET /reports/{id}/print' => ['ReportController', 'print'],
     'GET /reports/{id}/pdf' => ['ReportController', 'downloadPdf'],
+    'POST /reports/{id}/delete' => ['ReportController', 'delete'],
     'POST /reports/{id}/rate' => ['ReportController', 'rate'],
     'GET /reports/export' => ['ReportController', 'export'],
     'GET /reports/export-monthly' => ['ReportController', 'exportMonthly'],
@@ -93,6 +100,8 @@ return [
     // Settings
     'GET /settings' => ['SettingController', 'index'],
     'POST /settings/update' => ['SettingController', 'update'],
+    'GET /settings/roles' => ['RoleController', 'index'],
+    'POST /settings/roles/update' => ['RoleController', 'update'],
     
     // Section Communes management (chef_unite assigns communes to chef_section)
     'GET /section-communes' => ['SectionCommuneController', 'index'],
@@ -166,6 +175,9 @@ return [
     'POST /feed' => ['FeedController', 'store'],
     'POST /feed/{id}/like' => ['FeedController', 'like'],
     'POST /feed/{id}/comment' => ['FeedController', 'comment'],
+    'POST /feed/{id}/delete' => ['FeedController', 'deletePost'],
+    'POST /feed/{id}/comments/{cid}/delete' => ['FeedController', 'deleteComment'],
+    'GET /feed/{id}/comments' => ['FeedController', 'comments'],
     'GET /leaderboard' => ['CitizenController', 'leaderboard'],
     'GET /badges' => ['CitizenController', 'badges'],
     'GET /citizen/map' => ['CitizenController', 'map'],

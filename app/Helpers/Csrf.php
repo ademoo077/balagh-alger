@@ -9,7 +9,8 @@ class Csrf {
     }
 
     public static function field(): string {
-        return '<input type="hidden" name="_token" value="' . self::generate() . '">';
+        $token = Session::get('csrf_token') ?? self::generate();
+        return '<input type="hidden" name="_token" value="' . $token . '">';
     }
 
     public static function meta(): string {

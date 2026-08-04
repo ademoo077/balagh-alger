@@ -21,35 +21,42 @@ class SendPushJob extends Job {
         $stmt = $db->prepare("SELECT endpoint, p256dh_key, auth_key FROM push_subscriptions WHERE user_id = ?");
         $stmt->execute([$this->userId]);
         $subs = $stmt->fetchAll();
+        if (empty($subs)) return;
+
+        $config = require __DIR__ . '/../Config/push.php';
+        $webPush = new \Minishlink\WebPush\WebPush([
+            'VAPID' => [
+                'subject' => $config['vapid_subject'],
+                'publicKey' => $config['vapid_public_key'],
+                'privateKey' => $config['vapid_private_key'],
+            ],
+        ]);
+
+        $payload = json_encode([
+            'title' => $this->title,
+            'body' => $this->body,
+            'url' => $this->url,
+        ]);
 
         foreach ($subs as $sub) {
-            $payload = json_encode([
-                'title' => $this->title,
-                'body' => $this->body,
-                'url' => $this->url,
-            ]);
+            $webPush->queueNotification(
+                new \Minishlink\WebPush\Notification(
+                    $sub['endpoint'],
+                    $payload,
+                    $sub['p256dh_key'] ?: null,
+                    $sub['auth_key'] ?: null
+                )
+            );
+        }
 
-            $ch = curl_init($sub['endpoint']);
-            curl_setopt_array($ch, [
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => $payload,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 10,
-            ]);
-            curl_exec($ch);
-            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $error = curl_error($ch);
-            curl_close($ch);
-
-            // Remove stale subscriptions
-            if ($code === 410 || $code === 404) {
-                $db->prepare("DELETE FROM push_subscriptions WHERE endpoint = ?")->execute([$sub['endpoint']]);
+        foreach ($webPush->flush() as $report) {
+            if ($report->isSuccess()) continue;
+            $endpoint = $report->getEndpoint();
+            $resp = $report->getResponse();
+            if ($resp && ($resp->getStatusCode() === 410 || $resp->getStatusCode() === 404)) {
+                $db->prepare("DELETE FROM push_subscriptions WHERE endpoint = ?")->execute([$endpoint]);
             }
-
-            if ($error) {
-                error_log("[Push Error] user={$this->userId}: {$error}");
-            }
+            error_log("[Push Error] user={$this->userId}: " . ($resp ? $resp->getStatusCode() : 'timeout'));
         }
     }
 

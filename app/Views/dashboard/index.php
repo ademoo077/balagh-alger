@@ -31,6 +31,12 @@
                     <a href="?period=year" class="btn btn-sm btn-outline-secondary <?= ($period ?? '') === 'year' ? 'active' : '' ?>"><?= __('ui.period_year') ?></a>
                 </div>
             </div>
+            <div class="d-flex align-items-center gap-2 d-none d-sm-flex">
+                <input type="date" id="dateFrom" class="form-control form-control-sm" style="width:auto;" value="<?= htmlspecialchars($_GET['date_from'] ?? '') ?>">
+                <span class="text-muted">→</span>
+                <input type="date" id="dateTo" class="form-control form-control-sm" style="width:auto;" value="<?= htmlspecialchars($_GET['date_to'] ?? '') ?>">
+                <button class="btn btn-sm btn-primary" onclick="applyDateFilter()" title="<?= __('ui.apply') ?>"><i class="fas fa-filter"></i></button>
+            </div>
             <div class="text-end d-none d-sm-block">
                 <div class="text-secondary" style="font-size:0.75rem;"><i class="fas fa-map-marker-alt me-1"></i><?= \App\Helpers\Session::get('daira_name', __('ui.wilaya_alger')) ?></div>
                 <div id="live-clock" class="font-mono" style="font-size:1.2rem;font-weight:700;font-variant-numeric:tabular-nums;"></div>
@@ -293,12 +299,73 @@
 </div>
 <?php endif; ?>
 
-<!-- Charts Row -->
+<!-- Top 5 Widgets -->
+<?php if (!empty($topCategories)): ?>
 <div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100 animate-fade-in-up">
+            <div class="card-header"><h6 class="mb-0"><i class="fas fa-fire me-2 text-red"></i><?= __('dashboard.by_category') ?> — Top 5</h6></div>
+            <div class="card-body p-0">
+                <?php foreach ($topCategories as $i => $tc): ?>
+                <div class="d-flex align-items-center justify-content-between px-3 py-2" style="border-bottom:1px solid var(--border);">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge" style="background:<?= ['var(--red-surface),color:var(--red)','var(--amber-surface),color:var(--amber)','var(--accent-surface),color:var(--accent)','var(--cyan-surface),color:var(--cyan)','var(--green-surface),color:var(--green)'][$i] ?>;min-width:24px;"><?= $i+1 ?></span>
+                        <span style="font-size:0.85rem;"><?= htmlspecialchars($tc['name']) ?></span>
+                    </div>
+                    <span class="fw-bold" style="color:var(--accent);"><?= $tc['count'] ?></span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 animate-fade-in-up">
+            <div class="card-header"><h6 class="mb-0"><i class="fas fa-map-marker-alt me-2 text-cyan"></i><?= __('dashboard.commune_ranking') ?> — Top 5</h6></div>
+            <div class="card-body p-0">
+                <?php foreach ($topCommunes as $i => $tco): ?>
+                <div class="d-flex align-items-center justify-content-between px-3 py-2" style="border-bottom:1px solid var(--border);">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge" style="background:<?= ['var(--red-surface),color:var(--red)','var(--amber-surface),color:var(--amber)','var(--accent-surface),color:var(--accent)','var(--cyan-surface),color:var(--cyan)','var(--green-surface),color:var(--green)'][$i] ?>;min-width:24px;"><?= $i+1 ?></span>
+                        <span style="font-size:0.85rem;"><?= htmlspecialchars($tco['name']) ?></span>
+                    </div>
+                    <span class="fw-bold" style="color:var(--accent);"><?= $tco['count'] ?></span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 animate-fade-in-up">
+            <div class="card-header"><h6 class="mb-0"><i class="fas fa-exclamation-triangle me-2 text-amber"></i><?= __('dashboard.urgent_reports') ?></h6></div>
+            <div class="card-body p-0">
+                <?php if (!empty($topUrgent)): ?>
+                <?php foreach ($topUrgent as $tu): ?>
+                <div class="d-flex align-items-center justify-content-between px-3 py-2" style="border-bottom:1px solid var(--border);">
+                    <div>
+                        <a href="/reports/<?= htmlspecialchars($tu['tracking_code']) ?>" class="text-decoration-none fw-bold" style="color:var(--accent);font-size:0.82rem;"><?= htmlspecialchars($tu['tracking_code']) ?></a>
+                        <div style="font-size:0.78rem;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars($tu['title']) ?></div>
+                    </div>
+                    <span class="badge" style="background:var(--red-surface);color:var(--red);font-size:0.7rem;"><?= htmlspecialchars($tu['priority']) ?></span>
+                </div>
+                <?php endforeach; ?>
+                <?php else: ?>
+                <div class="text-center py-3 text-muted" style="font-size:0.85rem;"><i class="fas fa-check-circle me-1 text-green"></i><?= __('dashboard.no_urgent') ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- Charts — draggable -->
+<div id="charts-container">
+<!-- Charts Row -->
+<div class="row g-3 mb-4 chart-draggable" data-id="main-charts">
     <div class="col-xl-4">
         <div class="card h-100 animate-fade-in-up">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="fas fa-chart-pie me-2 text-accent"></i><?= __('dashboard.by_category') ?></h6>
+                <button class="chart-fullscreen-btn" title="Plein écran"><i class="fas fa-expand"></i></button>
             </div>
             <div class="card-body">
                 <canvas id="categoryChart" height="260"></canvas>
@@ -328,8 +395,9 @@
     </div>
     <div class="col-xl-4">
         <div class="card h-100 animate-fade-in-up">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="fas fa-chart-pie me-2 text-amber"></i><?= __('dashboard.by_priority') ?></h6>
+                <button class="chart-fullscreen-btn" title="Plein écran"><i class="fas fa-expand"></i></button>
             </div>
             <div class="card-body">
                 <canvas id="priorityChart" height="260"></canvas>
@@ -340,11 +408,12 @@
 
 <!-- Subcategory Chart -->
 <?php if (!empty($bySubcategory)): ?>
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 chart-draggable" data-id="subcategory">
     <div class="col-12">
         <div class="card animate-fade-in-up">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="fas fa-layer-group me-2 text-purple"></i><?= __('dashboard.by_subcategory') ?></h6>
+                <button class="chart-fullscreen-btn" title="Plein écran"><i class="fas fa-expand"></i></button>
             </div>
             <div class="card-body">
                 <canvas id="subcategoryChart" height="120"></canvas>
@@ -355,11 +424,12 @@
 <?php endif; ?>
 
 <!-- Commune Ranking -->
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 chart-draggable" data-id="commune-ranking">
     <div class="col-xl-6">
         <div class="card animate-fade-in-up">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="fas fa-ranking-star me-2 text-amber"></i>Classement des communes</h6>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-ranking-star me-2 text-amber"></i><?= __('dashboard.commune_ranking') ?></h6>
+                <button class="chart-fullscreen-btn" title="Plein écran"><i class="fas fa-expand"></i></button>
             </div>
             <div class="card-body">
                 <canvas id="communeRankChart" height="200"></canvas>
@@ -368,11 +438,38 @@
     </div>
     <div class="col-xl-6">
         <div class="card animate-fade-in-up">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="fas fa-chart-line me-2 text-cyan"></i>Prévision charge</h6>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-chart-line me-2 text-cyan"></i><?= __('dashboard.charge_prediction') ?></h6>
+                <button class="chart-fullscreen-btn" title="Plein écran"><i class="fas fa-expand"></i></button>
             </div>
             <div class="card-body">
                 <canvas id="chargeTrendChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Evolution Charts -->
+<div class="row g-3 mb-4 chart-draggable" data-id="evolution">
+    <div class="col-xl-6">
+        <div class="card animate-fade-in-up">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-chart-area me-2 text-accent"></i><?= __('dashboard.monthly_evolution') ?></h6>
+                <button class="chart-fullscreen-btn" title="Plein écran"><i class="fas fa-expand"></i></button>
+            </div>
+            <div class="card-body">
+                <canvas id="evolutionChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card animate-fade-in-up">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-layer-group me-2 text-purple"></i><?= __('dashboard.status_evolution') ?></h6>
+                <button class="chart-fullscreen-btn" title="Plein écran"><i class="fas fa-expand"></i></button>
+            </div>
+            <div class="card-body">
+                <canvas id="statusEvolutionChart" height="200"></canvas>
             </div>
         </div>
     </div>
@@ -382,25 +479,26 @@
 <div class="row g-3 mb-4">
     <div class="col-12">
         <div class="card animate-fade-in-up">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="fas fa-fire me-2 text-red"></i>Activité — Heures / Jours</h6>
-                <small class="text-muted">3 derniers mois</small>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-fire me-2 text-red"></i><?= __('dashboard.activity_heatmap') ?></h6>
+                <button class="chart-fullscreen-btn" title="Plein écran"><i class="fas fa-expand"></i></button>
             </div>
             <div class="card-body">
                 <div id="heatmapGrid" class="heatmap-grid"></div>
                 <div class="heatmap-legend mt-2">
-                    <span style="font-size:0.7rem;color:var(--text-muted);">Peu</span>
+                    <span style="font-size:0.7rem;color:var(--text-muted);"><?= __('ui.heatmap_low') ?></span>
                     <span class="heatmap-legend-box" style="background:var(--card-bg);border:1px solid var(--border);"></span>
                     <span class="heatmap-legend-box" style="background:rgba(99,102,241,0.2);"></span>
                     <span class="heatmap-legend-box" style="background:rgba(99,102,241,0.45);"></span>
                     <span class="heatmap-legend-box" style="background:rgba(99,102,241,0.7);"></span>
                     <span class="heatmap-legend-box" style="background:rgba(99,102,241,1);"></span>
-                    <span style="font-size:0.7rem;color:var(--text-muted);">Beaucoup</span>
+                    <span style="font-size:0.7rem;color:var(--text-muted);"><?= __('ui.heatmap_high') ?></span>
                 </div>
             </div>
         </div>
     </div>
 </div>
+</div><!-- /charts-container -->
 
 <!-- Map -->
 <div class="row g-3 mb-4">
@@ -443,34 +541,30 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table id="recentReportsTable" class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
                                 <th><?= __('common.code') ?></th>
                                 <th><?= __('common.title') ?></th>
                                 <th><?= __('common.category') ?></th>
-                                <th class="d-none d-lg-table-cell"><?= __('common.daira') ?></th>
+                                <th><?= __('common.daira') ?></th>
                                 <th><?= __('common.priority') ?></th>
                                 <th><?= __('ui.status') ?></th>
                                 <th><?= __('ui.deadline') ?></th>
-                                <th class="d-none d-md-table-cell"><?= __('common.date') ?></th>
+                                <th><?= __('common.date') ?></th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php if (empty($recentReports)): ?>
-                            <tr><td colspan="7" class="text-center text-muted py-5">
-                                <div class="empty-state py-3"><i class="fas fa-inbox d-block mb-2"></i><p><?= __('dashboard.no_reports') ?></p></div>
-                            </td></tr>
-                        <?php else: foreach ($recentReports as $r): ?>
+                        <?php if (!empty($recentReports)): foreach ($recentReports as $r): ?>
                             <tr>
                                 <td><a href="/reports/<?= $r['id'] ?>"><?= $r['tracking_code'] ?></a></td>
                                 <td class="truncate" style="max-width:180px;"><?= \App\Helpers\Helper::sanitize($r['title']) ?></td>
                                 <td><span class="badge" style="background:<?= ($r['category_color'] ?? '#6366f1') ?>18;color:<?= $r['category_color'] ?? '#6366f1' ?>;"><?= $r['category_name'] ?></span></td>
-                                <td class="text-secondary d-none d-lg-table-cell"><?= $r['daira_name'] ?></td>
+                                <td class="text-secondary"><?= $r['daira_name'] ?></td>
                                 <td><?= \App\Helpers\Helper::getPriorityBadge($r['priority']) ?></td>
                                 <td><?= \App\Helpers\Helper::getStatusBadge($r['status']) ?></td>
                                 <td><small><?= \App\Helpers\DeadlineHelper::renderBadge($r['created_at'], (int)($r['deadline_days'] ?? 7), $r['status']) ?></small></td>
-                                <td class="text-muted d-none d-md-table-cell"><small><?= \App\Helpers\Helper::timeAgo($r['created_at']) ?></small></td>
+                                <td class="text-muted"><small><?= \App\Helpers\Helper::timeAgo($r['created_at']) ?></small></td>
                             </tr>
                         <?php endforeach; endif; ?>
                         </tbody>
@@ -509,33 +603,79 @@ document.addEventListener('DOMContentLoaded', function() {
     var prioColors = { low: '#059669', medium: '#d97706', high: '#dc2626', urgent: '#b91c1c' };
     var prioLabels = { low: '<?= __('ui.priority_low') ?>', medium: '<?= __('ui.priority_medium') ?>', high: '<?= __('ui.priority_high') ?>', urgent: '<?= __('ui.priority_urgent') ?>' };
 
-    // Commune Ranking Chart
-    fetch('/api/commune-ranking').then(function(r){return r.json()}).then(function(data){
-        if(!data.length||!document.getElementById('communeRankChart'))return;
-        new Chart(document.getElementById('communeRankChart'),{
+    // Commune Ranking Chart — loading skeleton
+    var communeRankCard = document.getElementById('communeRankChart');
+    if (communeRankCard) communeRankCard.closest('.card-body').classList.add('chart-loading');
+    fetch('/api/commune-ranking').then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(data){
+        if(communeRankCard) communeRankCard.closest('.card-body').classList.add('chart-loading-loaded');
+        if(!data.length||!communeRankCard)return;
+        new Chart(communeRankCard,{
             type:'bar',
             data:{labels:data.map(function(d){return d.commune_name}),datasets:[
-                {label:'Ce mois',data:data.map(function(d){return d.month_count}),backgroundColor:'rgba(99,102,241,0.7)',borderRadius:6,borderSkipped:false},
-                {label:'Taux résolution %',data:data.map(function(d){return d.resolution_rate}),backgroundColor:'rgba(34,197,94,0.5)',borderRadius:6,borderSkipped:false}
+                {label:'<?= __('dashboard.commune_this_month') ?>',data:data.map(function(d){return d.month_count}),backgroundColor:'rgba(99,102,241,0.7)',borderRadius:6,borderSkipped:false},
+                {label:'<?= __('dashboard.resolution_rate_pct') ?>',data:data.map(function(d){return d.resolution_rate}),backgroundColor:'rgba(34,197,94,0.5)',borderRadius:6,borderSkipped:false}
             ]},
             options:Object.assign({},chartDefaults,{indexAxis:'y',plugins:{legend:{position:'bottom',labels:{color:textColor,font:{size:10}}}},scales:{x:{ticks:{color:textColor,font:{size:10}},grid:{color:gridColor}},y:{ticks:{color:textColor,font:{size:10}},grid:{display:false}}}})
         });
+    }).catch(function(err){
+        console.error('Commune ranking error:',err);
+        if(communeRankCard){
+            communeRankCard.closest('.card-body').classList.add('chart-loading-loaded');
+            communeRankCard.closest('.card-body').innerHTML='<div class="text-center text-muted py-4"><i class="fas fa-exclamation-triangle mb-2 d-block"></i><?= __("common.error_loading") ?></div>';
+        }
     });
 
     // Charge Trend Prediction
     var byMonth = <?= json_encode($byMonth ?? []) ?>;
     if(byMonth.length>0&&document.getElementById('chargeTrendChart')){
-        var labels=byMonth.map(function(d){return['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][d.month-1]});
+        var labels=byMonth.map(function(d){return d.month;});
         var vals=byMonth.map(function(d){return d.count});
-        var avg=vals.reduce(function(a,b){return a+b},0)/vals.length;
-        var pred=vals.map(function(){return Math.round(avg*1.1)});
+        var n=vals.length;
+        var sumX=0,sumY=0,sumXY=0,sumX2=0;
+        for(var i=0;i<n;i++){sumX+=i;sumY+=vals[i];sumXY+=i*vals[i];sumX2+=i*i;}
+        var m=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX)||0;
+        var b=(sumY-m*sumX)/n;
+        var pred=vals.map(function(_,i){return Math.max(0,Math.round(m*(n+i)+b));});
+        var predLabels=labels.map(function(_,i){
+            var d=new Date();d.setMonth(d.getMonth()+i-n+1+(n));
+            return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+        });
+        var allLabels=labels.concat(predLabels.slice(n>1?1:0));
+        var predLine=vals.slice(0,-1).concat(pred);
         new Chart(document.getElementById('chargeTrendChart'),{
             type:'line',
-            data:{labels:labels,datasets:[
-                {label:'Réel',data:vals,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.08)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#6366f1'},
-                {label:'Prévision',data:pred,borderColor:'#f59e0b',borderDash:[5,5],backgroundColor:'transparent',tension:0.4,pointRadius:3,pointBackgroundColor:'#f59e0b'}
+            data:{labels:allLabels,datasets:[
+                {label:'Réel',data:vals.concat(Array(pred.length).fill(null)),borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.08)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#6366f1'},
+                {label:'<?= __('dashboard.prediction') ?>',data:predLine,borderColor:'#f59e0b',borderDash:[5,5],backgroundColor:'transparent',tension:0.4,pointRadius:3,pointBackgroundColor:'#f59e0b'}
             ]},
             options:Object.assign({},chartDefaults,{plugins:{legend:{position:'bottom',labels:{color:textColor,font:{size:10}}}},scales:{x:{ticks:{color:textColor,font:{size:10}},grid:{display:false}},y:{ticks:{color:textColor,font:{size:10}},grid:{color:gridColor},beginAtZero:true}}})
+        });
+    }
+
+    // Monthly Evolution Chart (line: total + resolved)
+    var byMonthEvo = <?= json_encode($byMonthEvolution ?? []) ?>;
+    if(byMonthEvo.length>0&&document.getElementById('evolutionChart')){
+        new Chart(document.getElementById('evolutionChart'),{
+            type:'line',
+            data:{labels:byMonthEvo.map(function(d){return d.month;}),datasets:[
+                {label:'<?= __('dashboard.total_reports') ?>',data:byMonthEvo.map(function(d){return parseInt(d.total);}),borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.1)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#6366f1'},
+                {label:'<?= __('dashboard.resolved') ?>',data:byMonthEvo.map(function(d){return parseInt(d.resolved);}),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.1)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#22c55e'},
+                {label:'<?= __('dashboard.urgent') ?>',data:byMonthEvo.map(function(d){return parseInt(d.urgent);}),borderColor:'#ef4444',backgroundColor:'transparent',tension:0.4,pointRadius:3,pointBackgroundColor:'#ef4444',borderDash:[4,4]}
+            ]},
+            options:Object.assign({},chartDefaults,{plugins:{legend:{position:'bottom',labels:{color:textColor,font:{size:10}}}},scales:{x:{ticks:{color:textColor,font:{size:10}},grid:{display:false}},y:{ticks:{color:textColor,font:{size:10}},grid:{color:gridColor},beginAtZero:true}}})
+        });
+    }
+
+    // Status Evolution Stacked Area Chart
+    if(byMonthEvo.length>0&&document.getElementById('statusEvolutionChart')){
+        new Chart(document.getElementById('statusEvolutionChart'),{
+            type:'line',
+            data:{labels:byMonthEvo.map(function(d){return d.month;}),datasets:[
+                {label:'<?= __('statuses.submitted') ?>',data:byMonthEvo.map(function(d){return parseInt(d.submitted);}),borderColor:'#94a3b8',backgroundColor:'rgba(148,163,184,0.3)',fill:true,tension:0.4,pointRadius:3},
+                {label:'<?= __('statuses.in_progress') ?>',data:byMonthEvo.map(function(d){return parseInt(d.in_progress);}),borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,0.3)',fill:true,tension:0.4,pointRadius:3},
+                {label:'<?= __('dashboard.resolved') ?>',data:byMonthEvo.map(function(d){return parseInt(d.resolved);}),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.3)',fill:true,tension:0.4,pointRadius:3}
+            ]},
+            options:Object.assign({},chartDefaults,{plugins:{legend:{position:'bottom',labels:{color:textColor,font:{size:10}}}},scales:{x:{stacked:true,ticks:{color:textColor,font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{color:textColor,font:{size:10}},grid:{color:gridColor},beginAtZero:true}}})
         });
     }
 
@@ -584,7 +724,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!heatmapActive) {
             if (!heatLayer) {
                 fetch('/api/reports/heatmap')
-                    .then(function(resp) { return resp.json(); })
+                    .then(function(resp) { if(!resp.ok)throw new Error(resp.status); return resp.json(); })
                     .then(function(data) {
                         var points = data.map(function(r) {
                             var intensity = r.priority === 'urgent' ? 1.0 : r.priority === 'high' ? 0.7 : r.priority === 'medium' ? 0.5 : 0.3;
@@ -594,6 +734,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         heatLayer.addTo(dashMap);
                         btn.classList.remove('btn-outline-danger');
                         btn.classList.add('btn-danger');
+                    }).catch(function(err) {
+                        console.error('Heatmap error:', err);
+                        Swal.fire({ icon: 'error', title: 'Erreur', text: 'Impossible de charger la heatmap', timer: 2000, showConfirmButton: false });
                     });
             } else {
                 heatLayer.addTo(dashMap);
@@ -607,6 +750,16 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.classList.remove('btn-danger');
             btn.classList.add('btn-outline-danger');
         }
+    };
+
+    // Date range filter
+    window.applyDateFilter = function() {
+        var from = document.getElementById('dateFrom').value;
+        var to = document.getElementById('dateTo').value;
+        var params = [];
+        if (from) params.push('date_from=' + from);
+        if (to) params.push('date_to=' + to);
+        window.location.href = '/dashboard' + (params.length ? '?' + params.join('&') : '');
     };
 
     // Live Clock
@@ -648,9 +801,8 @@ document.addEventListener('DOMContentLoaded', function() {
         prioData2.forEach(function(p) { lines.push([p.priority, p.count].join(',')); });
         lines.push([]);
         lines.push(['=== Par Mois ===', 'Mois', 'Count'].join(','));
-        var monthNames = ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
         var mData = <?= json_encode($byMonth ?? []) ?>;
-        mData.forEach(function(m) { lines.push([monthNames[m.month - 1] || m.month, m.count].join(',')); });
+        mData.forEach(function(m) { lines.push([m.month, m.count].join(',')); });
         lines.push([]);
         lines.push(['=== Par Daira ===', 'Count'].join(','));
         var dData = <?= json_encode($byDaira ?? []) ?>;
@@ -691,7 +843,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         heatGrid.innerHTML = html;
     } else if (heatGrid) {
-        heatGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:1rem;color:var(--text-muted);font-size:0.82rem;">Aucune donnée d\'activité disponible</div>';
+        heatGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:1rem;color:var(--text-muted);font-size:0.82rem;"><?= addslashes(__('dashboard.no_activity_data')) ?></div>';
     }
 
     // ============================================================
@@ -790,5 +942,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (allCatData.length > 0) renderCatChart(allCatData);
     if (allSubData.length > 0) renderSubChart(allSubData);
     if (allPrioData.length > 0) renderPrioChart(allPrioData);
+
+    // DataTables on recent reports
+    if (typeof jQuery !== 'undefined' && jQuery.fn.DataTable) {
+        jQuery('#recentReportsTable').DataTable({
+            pageLength: 10,
+            order: [[7, 'desc']],
+            language: { search: 'Rechercher :', lengthMenu: 'Afficher _MENU_', info: '_START_ à _END_ sur _TOTAL_', paginate: { previous: 'Préc', next: 'Suiv' }, zeroRecords: 'Aucun signalement' },
+            dom: '<"row"<"col-sm-6"l><"col-sm-6"f>>rtip',
+            responsive: true,
+            columnDefs: [
+                { orderable: false, targets: [2, 5] }
+            ]
+        });
+    }
 });
 </script>

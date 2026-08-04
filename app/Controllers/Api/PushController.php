@@ -44,22 +44,38 @@ class PushController extends Controller {
         $stmt = $db->prepare("SELECT endpoint, p256dh_key, auth_key FROM push_subscriptions WHERE user_id = ?");
         $stmt->execute([$userId]);
         $subs = $stmt->fetchAll();
+        if (empty($subs)) return;
+
+        $config = require __DIR__ . '/../../Config/push.php';
+        $webPush = new \Minishlink\WebPush\WebPush([
+            'VAPID' => [
+                'subject' => $config['vapid_subject'],
+                'publicKey' => $config['vapid_public_key'],
+                'privateKey' => $config['vapid_private_key'],
+            ],
+        ]);
+
+        $payload = json_encode(['title' => $title, 'body' => $body, 'url' => $url]);
+
         foreach ($subs as $sub) {
-            $payload = json_encode(['title' => $title, 'body' => $body, 'url' => $url]);
-            $ch = curl_init($sub['endpoint']);
-            curl_setopt_array($ch, [
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => $payload,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 5
-            ]);
-            curl_exec($ch);
-            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            if ($code === 410 || $code === 404) {
-                $db->prepare("DELETE FROM push_subscriptions WHERE endpoint = ?")->execute([$sub['endpoint']]);
+            $webPush->queueNotification(
+                new \Minishlink\WebPush\Notification(
+                    $sub['endpoint'],
+                    $payload,
+                    $sub['p256dh_key'] ?: null,
+                    $sub['auth_key'] ?: null
+                )
+            );
+        }
+
+        foreach ($webPush->flush() as $report) {
+            if ($report->isSuccess()) continue;
+            $endpoint = $report->getEndpoint();
+            $resp = $report->getResponse();
+            if ($resp && ($resp->getStatusCode() === 410 || $resp->getStatusCode() === 404)) {
+                $db->prepare("DELETE FROM push_subscriptions WHERE endpoint = ?")->execute([$endpoint]);
             }
+            error_log("[Push Error] user={$userId}: " . ($resp ? $resp->getStatusCode() : 'timeout'));
         }
     }
 }

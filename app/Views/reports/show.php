@@ -418,6 +418,15 @@ $wfSteps = [
                     <a href="javascript:window.print()" class="btn btn-sm btn-outline-secondary"><i class="fas fa-print me-1"></i> <?= __('reports.print') ?></a>
                 </div>
 
+                <?php if ($primaryRole === 'admin_central'): ?>
+                <form method="POST" action="/reports/<?= $report['id'] ?>/delete" class="mt-3" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce signalement ? Cette action est irréversible.');">
+                    <input type="hidden" name="_token" value="<?= $csrfToken ?>">
+                    <button type="submit" class="btn btn-sm btn-danger w-100 show-action-btn">
+                        <i class="fas fa-trash-can me-1"></i> Supprimer le signalement
+                    </button>
+                </form>
+                <?php endif; ?>
+
                 <!-- Share -->
                 <div style="margin-top:10px;">
                     <div class="show-share-row">

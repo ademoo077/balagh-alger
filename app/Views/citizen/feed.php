@@ -1,33 +1,17 @@
-<?php $pageTitle = 'Communauté'; $activeTab = 'feed'; ?>
-<style>
-.feed-composer { padding: 14px; margin-bottom: 16px; }
-.feed-composer-row { display: flex; gap: 10px; align-items: flex-start; }
-.feed-composer-input { flex: 1; }
-.feed-composer-input textarea { width: 100%; border: none; background: transparent; color: var(--c-text); font-size: 0.88rem; resize: none; outline: none; font-family: inherit; min-height: 60px; }
-.feed-composer-input textarea::placeholder { color: var(--c-text-muted); }
-.feed-composer-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--c-card-border); }
-.feed-composer-actions button { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; color: var(--c-text-muted); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
-.feed-composer-actions button:hover { background: var(--c-glass); color: var(--c-accent); }
-.feed-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 4px; margin-top: 8px; border-radius: 12px; overflow: hidden; }
-.feed-photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; cursor: pointer; }
-.feed-comment-form { display: flex; gap: 8px; padding: 8px 14px; }
-.feed-comment-form input { flex: 1; border: none; background: transparent; color: var(--c-text); font-size: 0.82rem; outline: none; font-family: inherit; }
-.feed-comment-form input::placeholder { color: var(--c-text-muted); }
-.feed-comment-form button { background: none; border: none; color: var(--c-accent); font-size: 0.85rem; cursor: pointer; padding: 4px 8px; }
-.feed-comments { padding: 0 14px 8px; }
-.feed-comment { display: flex; gap: 8px; margin-bottom: 6px; font-size: 0.8rem; }
-.feed-comment-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--c-accent-surface); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; color: var(--c-accent); flex-shrink: 0; }
-.feed-comment-body { flex: 1; }
-.feed-comment-name { font-weight: 600; font-size: 0.78rem; }
-.feed-comment-text { color: var(--c-text-secondary); }
-.feed-comment-time { font-size: 0.68rem; color: var(--c-text-muted); }
-</style>
+<?php $pageTitle = 'Communauté'; $activeTab = 'feed';
+$currentUserId = \App\Helpers\Session::getUserId();
+?>
+<div class="c-ptr" id="ptrIndicator" style="display:none;">
+    <div class="c-ptr-content">
+        <i class="fas fa-arrow-down c-ptr-icon"></i>
+        <span class="c-ptr-text">Tirer pour actualiser</span>
+    </div>
+</div>
 
 <div class="c-section-title c-anim-fade">
     <h6><i class="fas fa-users"></i> Communauté</h6>
 </div>
 
-<!-- Composer -->
 <div class="c-card feed-composer c-anim-fade c-delay-1">
     <div class="feed-composer-row">
         <div class="c-feed-avatar" style="width:36px;height:36px;font-size:0.8rem;">
@@ -46,11 +30,18 @@
     </div>
 </div>
 
-<!-- Posts -->
 <div id="feedPosts">
 <?php if (empty($posts ?? [])): ?>
-<div class="c-empty c-anim-fade c-delay-2">
-    <i class="fas fa-comments"></i>
+<div class="feed-empty c-anim-fade c-delay-2">
+    <svg class="c-empty-svg" viewBox="0 0 140 120" fill="none">
+        <circle class="c-sv-circle" cx="70" cy="60" r="50"/>
+        <circle class="c-sv-icon-bg" cx="70" cy="56" r="18"/>
+        <path class="c-sv-icon c-sv-float" d="M62 52l8 6 10-10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle class="c-sv-dot" cx="36" cy="38" r="4"/>
+        <circle class="c-sv-dot" cx="106" cy="42" r="3"/>
+        <circle class="c-sv-dot" cx="100" cy="80" r="3.5"/>
+        <circle class="c-sv-dot" cx="42" cy="82" r="2.5"/>
+    </svg>
     <h5>Aucune publication</h5>
     <p>Soyez le premier à partager avec la communauté !</p>
 </div>
@@ -59,6 +50,7 @@
     $initials = strtoupper(substr($post['first_name'] ?? '?', 0, 1) . substr($post['last_name'] ?? '', 0, 1));
     $liked = !empty($post['user_liked']);
     $ago = \App\Helpers\Helper::timeAgo($post['created_at']);
+    $isOwn = (int)$post['user_id'] === (int)$currentUserId;
 ?>
 <div class="c-feed-card c-anim-fade" style="animation-delay:<?= ($i + 2) * 0.05 ?>s;" data-post-id="<?= $post['id'] ?>">
     <div class="c-feed-header">
@@ -67,6 +59,11 @@
             <div class="c-feed-author-name"><?= htmlspecialchars(($post['first_name'] ?? '') . ' ' . ($post['last_name'] ?? '')) ?></div>
             <div class="c-feed-author-time"><?= $ago ?></div>
         </div>
+        <?php if ($isOwn): ?>
+        <div class="feed-own-actions">
+            <button class="feed-delete-post" data-post="<?= $post['id'] ?>" title="Supprimer"><i class="fas fa-trash-can"></i></button>
+        </div>
+        <?php endif; ?>
     </div>
     <?php if (!empty($post['title'])): ?>
     <div class="c-feed-body" style="padding-top:0;">
@@ -94,6 +91,9 @@
             <i class="fas fa-comment"></i>
             <span><?= $post['comments_count'] ?></span>
         </button>
+        <button class="c-feed-action" data-action="share" data-post="<?= $post['id'] ?>" style="margin-left:auto;">
+            <i class="fas fa-share-nodes"></i>
+        </button>
     </div>
     <div class="feed-comments" id="comments-<?= $post['id'] ?>" style="display:none;">
         <div class="feed-comment-list" id="comment-list-<?= $post['id'] ?>"></div>
@@ -113,6 +113,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var feedPhotos = document.getElementById('feedPhotoInput');
     var feedPreview = document.getElementById('feedPhotoPreview');
     var selectedPhotos = [];
+    var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    var currentUserId = <?= json_encode($currentUserId) ?>;
 
     document.getElementById('feedAddPhoto').addEventListener('click', function() { feedPhotos.click(); });
 
@@ -127,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var body = feedBody.value.trim();
         if (!body) { CToast.show('Écrivez quelque chose'); return; }
         var fd = new FormData();
-        fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+        fd.append('_token', csrfToken);
         fd.append('title', body.substring(0, 80));
         fd.append('body', body);
         fd.append('post_type', 'discussion');
@@ -143,65 +145,136 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    // Like / Comment toggle
+    function loadComments(postId, containerId) {
+        var list = document.getElementById(containerId);
+        if (!list) return;
+        if (list.dataset.loaded === '1') return;
+        list.dataset.loaded = '1';
+        fetch('/feed/' + postId + '/comments')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.success || !d.comments) return;
+                list.innerHTML = '';
+                d.comments.forEach(function(c) {
+                    var div = document.createElement('div');
+                    div.className = 'feed-comment';
+                    var av = document.createElement('div');
+                    av.className = 'feed-comment-avatar';
+                    av.textContent = (c.first_name || '?')[0];
+                    var bd = document.createElement('div');
+                    bd.className = 'feed-comment-body';
+                    var nm = document.createElement('span');
+                    nm.className = 'feed-comment-name';
+                    nm.textContent = (c.first_name || '') + ' ' + (c.last_name || '');
+                    var tx = document.createElement('span');
+                    tx.className = 'feed-comment-text';
+                    tx.textContent = ' ' + c.body;
+                    bd.appendChild(nm);
+                    bd.appendChild(tx);
+                    div.appendChild(av);
+                    div.appendChild(bd);
+                    if (parseInt(c.user_id) === currentUserId) {
+                        var del = document.createElement('button');
+                        del.className = 'feed-comment-del';
+                        del.innerHTML = '<i class="fas fa-xmark"></i>';
+                        del.dataset.post = postId;
+                        del.dataset.comment = c.id;
+                        del.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            if (!confirm('Supprimer ce commentaire ?')) return;
+                            var f = new FormData();
+                            f.append('_token', csrfToken);
+                            fetch('/feed/' + this.dataset.post + '/comments/' + this.dataset.comment + '/delete', { method: 'POST', body: f })
+                                .then(function(r) { return r.json(); })
+                                .then(function(d) {
+                                    if (d.success) { div.remove(); CToast.show('Commentaire supprimé', 'success'); }
+                                    else { CToast.show('Erreur', 'error'); }
+                                });
+                        });
+                        div.appendChild(del);
+                    }
+                    var tm = document.createElement('div');
+                    tm.style.cssText = 'font-size:0.65rem;color:var(--c-text-muted);margin-top:2px;';
+                    tm.textContent = c.created_at ? c.created_at.substring(0, 16).replace('T', ' ') : '';
+                    bd.appendChild(tm);
+                    list.appendChild(div);
+                });
+            });
+    }
+
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('[data-action]');
-        if (!btn) return;
-        var action = btn.getAttribute('data-action');
-        var postId = btn.getAttribute('data-post');
+        if (btn) {
+            var action = btn.getAttribute('data-action');
+            var postId = btn.getAttribute('data-post');
 
-        if (action === 'like') {
-            fetch('/feed/' + postId + '/like', {
-                method: 'POST',
-                headers: {'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content}
-            }).then(function(r) { return r.json(); }).then(function(d) {
-                btn.classList.toggle('liked', d.liked);
-                var span = btn.querySelector('span');
-                span.textContent = parseInt(span.textContent) + (d.liked ? 1 : -1);
-            });
+            if (action === 'like') {
+                fetch('/feed/' + postId + '/like', {
+                    method: 'POST',
+                    headers: {'X-CSRF-TOKEN': csrfToken}
+                }).then(function(r) { return r.json(); }).then(function(d) {
+                    btn.classList.toggle('liked', d.liked);
+                    var span = btn.querySelector('span');
+                    span.textContent = parseInt(span.textContent) + (d.liked ? 1 : -1);
+                });
+            }
+            else if (action === 'comment-toggle') {
+                var el = document.getElementById('comments-' + postId);
+                var isHidden = el.style.display === 'none' || el.style.display === '';
+                el.style.display = isHidden ? 'block' : 'none';
+                if (isHidden) loadComments(postId, 'comment-list-' + postId);
+            }
+            else if (action === 'send-comment') {
+                var input = document.getElementById('comment-input-' + postId);
+                var body = input.value.trim();
+                if (!body) return;
+                var fd = new FormData();
+                fd.append('_token', csrfToken);
+                fd.append('body', body);
+                fetch('/feed/' + postId + '/comment', { method: 'POST', body: fd })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.success) {
+                            loadComments(postId, 'comment-list-' + postId);
+                            input.value = '';
+                            var countSpan = btn.closest('.c-feed-card').querySelector('[data-action="comment-toggle"] span');
+                            if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
+                        }
+                    });
+            }
+            else if (action === 'share') {
+                var url = window.location.origin + '/partager/' + postId;
+                if (navigator.share) {
+                    navigator.share({ title: 'Balagh Alger', text: 'Regardez ça sur Balagh Alger', url: url });
+                } else {
+                    navigator.clipboard.writeText(url).then(function() {
+                        CToast.show('Lien copié !', 'success');
+                    }).catch(function() {
+                        prompt('Copiez le lien :', url);
+                    });
+                }
+            }
+            return;
         }
-        else if (action === 'comment-toggle') {
-            var el = document.getElementById('comments-' + postId);
-            el.style.display = el.style.display === 'none' ? 'block' : 'none';
-        }
-        else if (action === 'send-comment') {
-            var input = document.getElementById('comment-input-' + postId);
-            var body = input.value.trim();
-            if (!body) return;
+
+        // Delete post
+        var delBtn = e.target.closest('.feed-delete-post');
+        if (delBtn) {
+            if (!confirm('Supprimer cette publication ?')) return;
+            var postId = delBtn.dataset.post;
             var fd = new FormData();
-            fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-            fd.append('body', body);
-            fetch('/feed/' + postId + '/comment', { method: 'POST', body: fd })
+            fd.append('_token', csrfToken);
+            fetch('/feed/' + postId + '/delete', { method: 'POST', body: fd })
                 .then(function(r) { return r.json(); })
                 .then(function(d) {
                     if (d.success) {
-                        var list = document.getElementById('comment-list-' + postId);
-                        var c = d.comment;
-                        var div = document.createElement('div');
-                        div.className = 'feed-comment';
-                        var avatarDiv = document.createElement('div');
-                        avatarDiv.className = 'feed-comment-avatar';
-                        avatarDiv.textContent = (c.user.first_name || '?')[0];
-                        var bodyDiv = document.createElement('div');
-                        bodyDiv.className = 'feed-comment-body';
-                        var nameSpan = document.createElement('span');
-                        nameSpan.className = 'feed-comment-name';
-                        nameSpan.textContent = c.user.first_name;
-                        var textSpan = document.createElement('span');
-                        textSpan.className = 'feed-comment-text';
-                        textSpan.textContent = ' ' + c.body;
-                        bodyDiv.appendChild(nameSpan);
-                        bodyDiv.appendChild(textSpan);
-                        div.appendChild(avatarDiv);
-                        div.appendChild(bodyDiv);
-                        list.appendChild(div);
-                        input.value = '';
-                    }
+                        delBtn.closest('.c-feed-card').remove();
+                        CToast.show('Publication supprimée', 'success');
+                    } else { CToast.show('Erreur', 'error'); }
                 });
         }
     });
 
-    // Enter to send comment
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && e.target.matches('[id^="comment-input-"]')) {
             e.preventDefault();
@@ -209,5 +282,54 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelector('[data-action="send-comment"][data-post="' + postId + '"]').click();
         }
     });
+
+    // Pull-to-refresh
+    (function() {
+        var ptr = document.getElementById('ptrIndicator');
+        if (!ptr) return;
+        var startY = 0, pulling = false, released = false;
+        var main = document.getElementById('cMain');
+        if (!main) main = document.querySelector('.c-container') || document.body;
+
+        main.addEventListener('touchstart', function(e) {
+            if (window.scrollY > 0) return;
+            startY = e.touches[0].clientY;
+            pulling = true;
+            released = false;
+        }, { passive: true });
+
+        main.addEventListener('touchmove', function(e) {
+            if (!pulling || released) return;
+            var dy = e.touches[0].clientY - startY;
+            if (dy < 0) { ptr.style.display = 'none'; return; }
+            ptr.style.display = 'flex';
+            if (dy > 60) {
+                ptr.classList.add('visible', 'release');
+                ptr.querySelector('.c-ptr-text').textContent = document.documentElement.lang === 'ar' ? 'أطلق للتحديث' : 'Relâchez pour actualiser';
+            } else {
+                ptr.classList.remove('release');
+                ptr.querySelector('.c-ptr-text').textContent = document.documentElement.lang === 'ar' ? 'اسحب للتحديث' : 'Tirer pour actualiser';
+            }
+        }, { passive: true });
+
+        main.addEventListener('touchend', function() {
+            if (!pulling) return;
+            pulling = false;
+            if (ptr.classList.contains('release')) {
+                released = true;
+                ptr.classList.add('loading');
+                ptr.querySelector('.c-ptr-icon').className = 'fas fa-spinner c-ptr-icon';
+                ptr.querySelector('.c-ptr-text').textContent = document.documentElement.lang === 'ar' ? 'تحديث...' : 'Actualisation...';
+                location.reload();
+            } else {
+                ptr.style.display = 'none';
+                ptr.classList.remove('visible');
+            }
+        }, { passive: true });
+
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 0) ptr.style.display = 'none';
+        }, { passive: true });
+    })();
 });
 </script>

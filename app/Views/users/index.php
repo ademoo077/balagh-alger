@@ -80,6 +80,7 @@
 .usr-action-btn{width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;cursor:pointer;transition:all 0.2s;text-decoration:none}
 .usr-action-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-surface)}
 .usr-action-btn.edit:hover{border-color:#f59e0b;color:#f59e0b;background:rgba(245,158,11,0.08)}
+.usr-action-btn:hover:not(.edit){border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,0.08)}
 
 .usr-mobile-list{display:none}
 .usr-mobile-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:0.8rem;transition:transform 0.2s,box-shadow 0.2s}
@@ -224,6 +225,12 @@ $statusLabels = ['active' => __('users.active'), 'inactive' => __('users.inactiv
                     <div class="d-flex gap-1">
                         <a href="/users/<?= $u['id'] ?>" class="usr-action-btn" title="<?= __('common.view') ?>"><i class="fas fa-eye"></i></a>
                         <a href="/users/<?= $u['id'] ?>/edit" class="usr-action-btn edit" title="<?= __('common.edit') ?>"><i class="fas fa-pen"></i></a>
+                        <?php if ($canDelete && $u['id'] != \App\Helpers\Session::getUserId()): ?>
+                        <form method="POST" action="/users/<?= $u['id'] ?>/delete" class="d-inline" data-confirm="<?= __('users.confirm_delete') ?>">
+                            <input type="hidden" name="_token" value="<?= $csrfToken ?>">
+                            <button type="submit" class="usr-action-btn" title="<?= __('common.delete') ?>" style="border-color:#ef4444;color:#ef4444;"><i class="fas fa-trash"></i></button>
+                        </form>
+                        <?php endif; ?>
                     </div>
                 </td>
             </tr>
@@ -251,6 +258,12 @@ $statusLabels = ['active' => __('users.active'), 'inactive' => __('users.inactiv
             <div class="usr-mobile-footer">
                 <a href="/users/<?= $u['id'] ?>" class="usr-action-btn"><i class="fas fa-eye"></i></a>
                 <a href="/users/<?= $u['id'] ?>/edit" class="usr-action-btn edit"><i class="fas fa-pen"></i></a>
+                <?php if ($canDelete && $u['id'] != \App\Helpers\Session::getUserId()): ?>
+                <form method="POST" action="/users/<?= $u['id'] ?>/delete" class="d-inline" data-confirm="<?= __('users.confirm_delete') ?>">
+                    <?= \App\Helpers\Csrf::field() ?>
+                    <button type="submit" class="usr-action-btn" title="<?= __('common.delete') ?>" style="border-color:#ef4444;color:#ef4444;"><i class="fas fa-trash"></i></button>
+                </form>
+                <?php endif; ?>
             </div>
         </div>
         <?php endforeach; ?>

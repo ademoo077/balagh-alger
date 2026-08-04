@@ -1,28 +1,6 @@
 <?php $pageTitle = __('common.edit_profile'); $activeTab = 'profile';
 $csrfToken = \App\Helpers\Csrf::generate();
 ?>
-<style>
-.pe-hero{background:linear-gradient(135deg,var(--c-accent),#8b5cf6,#06b6d4);border-radius:0 0 24px 24px;padding:24px 16px;margin:-12px -16px 16px;text-align:center;position:relative;overflow:hidden}
-.pe-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,0.15),transparent 50%)}
-.pe-hero *{position:relative;z-index:1}
-.pe-avatar-wrap{position:relative;display:inline-block;margin-bottom:10px}
-.pe-avatar{width:80px;height:80px;border-radius:50%;border:4px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#fff;overflow:hidden}
-.pe-avatar img{width:100%;height:100%;object-fit:cover}
-.pe-avatar-edit{position:absolute;bottom:0;right:0;width:28px;height:28px;border-radius:50%;background:var(--c-accent);border:3px solid var(--c-bg);display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.65rem;cursor:pointer}
-.pe-name{font-weight:800;font-size:1.15rem;color:#fff}
-.pe-email{font-size:0.78rem;color:rgba(255,255,255,0.7);margin-top:2px}
-.pe-field{margin-bottom:14px}
-.pe-field label{display:block;font-weight:600;font-size:0.78rem;color:var(--c-text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.3px}
-.pe-field input{width:100%;padding:10px 14px;border:2px solid var(--c-card-border);border-radius:12px;background:var(--c-card);color:var(--c-text);font-size:0.88rem;outline:none;transition:border-color 0.2s}
-.pe-field input:focus{border-color:var(--c-accent)}
-.pe-field input:disabled{opacity:0.5;cursor:not-allowed}
-.pe-field .pe-hint{font-size:0.7rem;color:var(--c-text-muted);margin-top:3px}
-.pe-btn{width:100%;padding:12px;border:none;border-radius:12px;background:var(--c-accent);color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px}
-.pe-btn:hover{opacity:0.9;transform:translateY(-1px)}
-.pe-btn:active{transform:translateY(0)}
-.pe-btn-outline{background:transparent;border:2px solid var(--c-card-border);color:var(--c-text)}
-.pe-pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--c-text-muted);cursor:pointer;font-size:0.85rem;padding:4px}
-</style>
 
 <div class="pe-hero">
     <div class="pe-avatar-wrap">

@@ -1,26 +1,12 @@
 <?php $pageTitle = 'Signaler'; $activeTab = 'reports'; ?>
-<style>
-.qr-step { display: none; }
-.qr-step.active { display: block; }
-.qr-step-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; text-align: center; }
-.qr-cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.qr-cat-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; border-radius: 14px; border: 2px solid var(--c-glass-border); background: var(--c-glass); color: var(--c-text-secondary); cursor: pointer; transition: all 0.2s; font-size: 0.75rem; font-weight: 500; text-align: center; }
-.qr-cat-btn i { font-size: 1.3rem; }
-.qr-cat-btn:active { transform: scale(0.95); }
-.qr-cat-btn.selected { border-color: var(--c-accent); background: var(--c-accent-surface); color: var(--c-accent); box-shadow: 0 0 0 3px var(--c-accent-glow); }
-.qr-sub-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
-.qr-photo-preview { width: 100%; border-radius: var(--c-radius); overflow: hidden; margin-bottom: 16px; position: relative; }
-.qr-photo-preview img { width: 100%; aspect-ratio: 4/3; object-fit: cover; }
-.qr-photo-preview .remove-photo { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.qr-location { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--c-green-surface); border-radius: var(--c-radius-sm); color: var(--c-green); font-size: 0.82rem; margin-bottom: 12px; }
-.qr-voice-btn { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--c-accent); background: transparent; color: var(--c-accent); font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
-.qr-voice-btn.recording { background: var(--c-red); border-color: var(--c-red); color: #fff; animation: cPulse 1s infinite; }
-</style>
 
 <div id="qrSteps">
     <!-- Step 1: Photo -->
     <div class="qr-step active" id="qrStep1">
         <div class="qr-step-title">Prenez une photo</div>
+        <div style="text-align:center;font-size:0.75rem;color:var(--c-text-muted);margin-bottom:10px;">
+            <span id="qrPhotoCount">0</span> / 3 photos max.
+        </div>
         <label class="c-quick-cam" id="qrCamLabel">
             <i class="fas fa-camera"></i>
             <span>Appuyez pour capturer</span>
@@ -59,6 +45,21 @@
             <i class="fas fa-location-dot"></i>
             <span id="qrLocText">Localisation...</span>
         </div>
+        <div id="qrManualLoc" class="c-card-flat" style="display:none;margin-bottom:12px;padding:12px;">
+            <label class="c-label">Adresse manuelle</label>
+            <input class="c-input" id="qrManualAddress" placeholder="Entrez votre adresse ou lieu du problème..." maxlength="200">
+            <div style="display:flex;gap:8px;margin-top:8px;">
+                <input class="c-input" id="qrManualLat" placeholder="Latitude (ex: 36.7538)" style="flex:1;" type="number" step="any">
+                <input class="c-input" id="qrManualLng" placeholder="Longitude (ex: 3.0588)" style="flex:1;" type="number" step="any">
+            </div>
+            <button class="c-btn c-btn-outline c-btn-sm" id="qrUseManualLoc" style="margin-top:8px;width:100%;">
+                <i class="fas fa-check"></i> Utiliser cette localisation
+            </button>
+        </div>
+        <div id="qrManualLocConfirm" class="qr-location" style="display:none;">
+            <i class="fas fa-location-dot"></i>
+            <span id="qrManualLocText">Adresse saisie manuellement</span>
+        </div>
         <div class="c-card-flat" style="margin-bottom:12px;">
             <label class="c-label">Titre (optionnel)</label>
             <input class="c-input" id="qrTitle" placeholder="Décrvez le problème en un mot..." maxlength="100">
@@ -88,6 +89,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var photos = [];
     var selectedCat = null;
     var selectedSubcat = null;
+    var qrLat = null;
+    var qrLng = null;
 
     // Step nav
     function goToStep(n) {
@@ -95,16 +98,25 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('qrStep' + n).classList.add('active');
     }
 
+    function updatePhotoCounter() {
+        var el = document.getElementById('qrPhotoCount');
+        if (el) el.textContent = photos.length;
+    }
+
     // Photo
     photoInput.addEventListener('change', function(e) {
-        var files = Array.from(e.target.files).slice(0, 3);
-        photos = files;
-        if (files.length) {
+        var files = Array.from(e.target.files).slice(0, 3 - photos.length);
+        photos = photos.concat(files);
+        updatePhotoCounter();
+        if (photos.length) {
             photoPreview.style.display = 'block';
-            photoPreview.innerHTML = files.map(function(f) {
+            photoPreview.innerHTML = photos.map(function(f, i) {
                 return '<div class="qr-photo-preview"><img src="' + URL.createObjectURL(f) + '"></div>';
             }).join('');
             document.getElementById('qrToStep2').disabled = false;
+        }
+        if (photos.length >= 3) {
+            document.getElementById('qrPhoto').disabled = true;
         }
     });
 
@@ -113,14 +125,19 @@ document.addEventListener('DOMContentLoaded', function() {
     camLabel.addEventListener('dragover', function(e) { e.preventDefault(); });
     camLabel.addEventListener('drop', function(e) {
         e.preventDefault();
-        var files = Array.from(e.dataTransfer.files).filter(function(f) { return f.type.startsWith('image/'); }).slice(0, 3);
-        if (files.length) {
-            photos = files;
+        var maxAdd = 3 - photos.length;
+        var files = Array.from(e.dataTransfer.files).filter(function(f) { return f.type.startsWith('image/'); }).slice(0, maxAdd);
+        photos = photos.concat(files);
+        updatePhotoCounter();
+        if (photos.length) {
             photoPreview.style.display = 'block';
-            photoPreview.innerHTML = files.map(function(f) {
+            photoPreview.innerHTML = photos.map(function(f) {
                 return '<div class="qr-photo-preview"><img src="' + URL.createObjectURL(f) + '"></div>';
             }).join('');
             document.getElementById('qrToStep2').disabled = false;
+        }
+        if (photos.length >= 3) {
+            document.getElementById('qrPhoto').disabled = true;
         }
     });
 
@@ -159,14 +176,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('qrToStep3').addEventListener('click', function() {
         goToStep(3);
-        // GPS
+        // GPS with manual fallback
+        var gotLoc = false;
         CGeo.getCurrent(function(loc) {
             if (loc) {
+                gotLoc = true;
+                qrLat = loc.lat;
+                qrLng = loc.lng;
                 document.getElementById('qrLocation').style.display = 'flex';
                 document.getElementById('qrLocText').textContent = loc.lat.toFixed(5) + ', ' + loc.lng.toFixed(5);
             }
         });
+        // Show manual input after 5s if GPS didn't respond
+        setTimeout(function() {
+            if (!gotLoc) {
+                document.getElementById('qrManualLoc').style.display = 'block';
+            }
+        }, 5000);
     });
+
+    document.getElementById('qrUseManualLoc').addEventListener('click', function() {
+        var lat = parseFloat(document.getElementById('qrManualLat').value);
+        var lng = parseFloat(document.getElementById('qrManualLng').value);
+        var addr = document.getElementById('qrManualAddress').value.trim();
+        if (isNaN(lat) || isNaN(lng) || lat < 36 || lat > 37 || lng < 2 || lng > 4) {
+            CToast.show('Coordonnées invalides. Latitude: 36-37, Longitude: 2-4', 'error');
+            return;
+        }
+        qrLat = lat;
+        qrLng = lng;
+        document.getElementById('qrManualLoc').style.display = 'none';
+        document.getElementById('qrManualLocConfirm').style.display = 'flex';
+        document.getElementById('qrManualLocText').textContent = addr || (lat.toFixed(5) + ', ' + lng.toFixed(5));
+        CToast.show('Localisation manuelle enregistrée', 'success');
+    });
+
     document.getElementById('qrBackStep2').addEventListener('click', function() { goToStep(2); });
 
     // Voice
@@ -187,6 +231,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Submit
     document.getElementById('qrSubmit').addEventListener('click', function() {
+        if (!qrLat || !qrLng) {
+            CToast.show('Veuillez entrer votre localisation (GPS ou manuelle).', 'error');
+            return;
+        }
         var formData = new FormData();
         formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
         formData.append('category_id', selectedCat);
@@ -195,13 +243,15 @@ document.addEventListener('DOMContentLoaded', function() {
         var desc = document.getElementById('qrDesc').value.trim();
         if (title) formData.append('title', title);
         if (desc) formData.append('description', desc);
+        formData.append('latitude', qrLat);
+        formData.append('longitude', qrLng);
         photos.forEach(function(p) { formData.append('photos[]', p); });
 
         var btn = this;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
 
-        fetch('/reports/store', {
+        fetch('/quick-report', {
             method: 'POST',
             body: formData
         }).then(function(r) { return r.json(); }).then(function(data) {

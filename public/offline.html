@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#6366f1">
     <title>Hors ligne — Balagh Alger</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Inter',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
-        .offline-container{max-width:360px;width:100%}
+        body{font-family:'Inter',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:24px;text-align:center}
+        .offline-container{max-width:360px;width:100%;flex:1;display:flex;flex-direction:column;justify-content:center}
         .offline-icon{width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15));display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:2rem;color:#6366f1}
         h1{font-size:1.3rem;font-weight:800;margin-bottom:8px}
         p{font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:24px}
@@ -19,13 +20,17 @@
         .btn-retry{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;padding:14px 32px;font-size:0.95rem;font-weight:700;cursor:pointer;width:100%;transition:all 0.2s}
         .btn-retry:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,0.3)}
         .btn-retry:active{transform:scale(0.98)}
+        .btn-retry:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+        .sync-progress{display:none;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-size:0.82rem;color:#22c55e}
+        .sync-progress i{font-size:1rem}
         .offline-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:32px}
-        .feature{background:rgba(30,41,59,0.5);border:1px solid rgba(51,65,85,0.5);border-radius:12px;padding:16px 12px;text-align:center}
+        .feature{background:rgba(30,41,59,0.5);border:1px solid rgba(51,65,85,0.5);border-radius:12px;padding:16px 12px;text-align:center;text-decoration:none;color:inherit;display:block;transition:all 0.2s}
+        .feature:active{transform:scale(0.96);background:rgba(99,102,241,0.1);border-color:#6366f1}
         .feature i{font-size:1.3rem;color:#6366f1;display:block;margin-bottom:6px}
         .feature span{font-size:0.72rem;color:#94a3b8;font-weight:600}
         .brand{margin-top:40px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.78rem;color:#475569}
         .brand i{color:#6366f1}
-        @media (prefers-color-scheme:light){body{background:#f8fafc;color:#1e293b}.feature{background:#f1f5f9;border-color:#e2e8f0}.feature span{color:#64748b}p{color:#64748b}}
+        @media (prefers-color-scheme:light){body{background:#f8fafc;color:#1e293b}.feature{background:#f1f5f9;border-color:#e2e8f0}.feature span{color:#64748b}p{color:#64748b}.pending-count{border-color:rgba(251,191,36,0.3)}}
     </style>
 </head>
 <body>
@@ -39,27 +44,32 @@
             <span><strong id="pendingNum">0</strong> signalement(s) en attente d'envoi</span>
         </div>
 
-        <button class="btn-retry" onclick="location.reload()">
+        <div class="sync-progress" id="syncProgress">
+            <i class="fas fa-spinner fa-pulse"></i>
+            <span id="syncText">Envoi en cours...</span>
+        </div>
+
+        <button class="btn-retry" id="retryBtn" onclick="retry()">
             <i class="fas fa-rotate-right" style="margin-right:8px;"></i> Réessayer
         </button>
 
         <div class="offline-features">
-            <div class="feature">
+            <a href="/reports/create" class="feature">
                 <i class="fas fa-file-circle-plus"></i>
                 <span>Créer un signalement</span>
-            </div>
-            <div class="feature">
+            </a>
+            <a href="/reports" class="feature">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Voir mes signalements</span>
-            </div>
-            <div class="feature">
+            </a>
+            <a href="/citizen/map" class="feature">
                 <i class="fas fa-map-location-dot"></i>
                 <span>Carte hors ligne</span>
-            </div>
-            <div class="feature">
-                <i class="fas fa-robot"></i>
-                <span>Assistant Balagh</span>
-            </div>
+            </a>
+            <a href="/home" class="feature">
+                <i class="fas fa-house"></i>
+                <span>Accueil</span>
+            </a>
         </div>
 
         <div class="brand">
@@ -68,9 +78,9 @@
         </div>
     </div>
     <script>
-    (function(){
+    function updatePendingCount() {
         try {
-            var req = indexedDB.open('balagh-offline', 1);
+            var req = indexedDB.open('balagh-offline', 2);
             req.onsuccess = function(e) {
                 var db = e.target.result;
                 if (db.objectStoreNames.contains('pending-reports')) {
@@ -80,12 +90,75 @@
                         if (countReq.result > 0) {
                             document.getElementById('pendingCount').style.display = 'flex';
                             document.getElementById('pendingNum').textContent = countReq.result;
+                        } else {
+                            document.getElementById('pendingCount').style.display = 'none';
                         }
                     };
                 }
             };
         } catch(e) {}
-    })();
+    }
+
+    function retry() {
+        var btn = document.getElementById('retryBtn');
+        var progress = document.getElementById('syncProgress');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Synchronisation...';
+        progress.style.display = 'flex';
+        document.getElementById('syncText').textContent = 'Envoi en cours...';
+
+        if (navigator.onLine) {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SYNC_NOW' });
+            }
+            var checkInterval = setInterval(function() {
+                try {
+                    var req = indexedDB.open('balagh-offline', 2);
+                    req.onsuccess = function(e) {
+                        var db = e.target.result;
+                        if (db.objectStoreNames.contains('pending-reports')) {
+                            var tx = db.transaction('pending-reports', 'readonly');
+                            var countReq = tx.objectStore('pending-reports').count();
+                            countReq.onsuccess = function() {
+                                if (countReq.result === 0) {
+                                    clearInterval(checkInterval);
+                                    document.getElementById('syncProgress').innerHTML = '<i class="fas fa-check-circle"></i> <span>Signalements envoyés !</span>';
+                                    setTimeout(function() {
+                                        btn.disabled = false;
+                                        btn.innerHTML = '<i class="fas fa-rotate-right"></i> Réessayer';
+                                        progress.style.display = 'none';
+                                        location.reload();
+                                    }, 1500);
+                                }
+                            };
+                        }
+                    };
+                } catch(e) {}
+            }, 2000);
+
+            setTimeout(function() {
+                clearInterval(checkInterval);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-rotate-right"></i> Réessayer';
+                progress.style.display = 'none';
+                document.getElementById('syncText').textContent = 'Toujours hors ligne. Réessayez plus tard.';
+                document.getElementById('syncProgress').style.display = 'none';
+            }, 30000);
+        } else {
+            setTimeout(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-rotate-right"></i> Réessayer';
+                progress.style.display = 'none';
+            }, 1000);
+        }
+    }
+
+    updatePendingCount();
+    setInterval(updatePendingCount, 5000);
+
+    if (navigator.onLine) {
+        setTimeout(retry, 500);
+    }
     </script>
 </body>
 </html>

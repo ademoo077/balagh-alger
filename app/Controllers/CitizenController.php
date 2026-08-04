@@ -10,6 +10,20 @@ class CitizenController extends Controller {
 
     protected string $layout = 'layouts/citizen';
 
+    private function getUserCommuneCenter(): array {
+        $db = Database::getConnection();
+        $communeId = Session::get('commune_id');
+        if ($communeId) {
+            $stmt = $db->prepare("SELECT latitude, longitude FROM communes WHERE id = ?");
+            $stmt->execute([$communeId]);
+            $row = $stmt->fetch();
+            if ($row && $row['latitude'] && $row['longitude']) {
+                return [(float)$row['latitude'], (float)$row['longitude']];
+            }
+        }
+        return [36.7538, 3.0588]; // fallback Algiers
+    }
+
     public function home(): void {
         $this->auth();
         if (!Rbac::isRole('citizen')) { $this->redirect('/dashboard'); return; }
@@ -66,10 +80,11 @@ class CitizenController extends Controller {
         $userLevel = \App\Helpers\Gamification::getLevel($userId);
         $recentActivity = \App\Helpers\Gamification::getRecentActivity($userId, 5);
         $userName = Session::getUserName();
+        $mapCenter = $this->getUserCommuneCenter();
 
         $this->view('citizen/home', compact(
             'total', 'inProgress', 'resolved', 'categories', 'mapReports', 'recentReports',
-            'stats', 'userLevel', 'recentActivity', 'userName', 'catBreakdown'
+            'stats', 'userLevel', 'recentActivity', 'userName', 'catBreakdown', 'mapCenter'
         ));
     }
 
@@ -86,6 +101,11 @@ class CitizenController extends Controller {
     public function quickReportStore(): void {
         $this->auth();
         header('Content-Type: application/json');
+
+        if (!\App\Helpers\Csrf::verify($_POST['_token'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Token de sécurité invalide.']);
+            return;
+        }
 
         if (!Rbac::isRole('citizen')) {
             echo json_encode(['success' => false, 'message' => 'Non autorisé']);
@@ -246,7 +266,8 @@ class CitizenController extends Controller {
             SUM(CASE WHEN status='in_progress' OR status='assigned' THEN 1 ELSE 0 END) as in_progress,
             SUM(CASE WHEN status='resolved' OR status='validated' THEN 1 ELSE 0 END) as resolved
             FROM reports WHERE deleted_at IS NULL AND latitude IS NOT NULL")->fetch();
-        $this->view('citizen/map', compact('categories', 'stats'));
+        $mapCenter = $this->getUserCommuneCenter();
+        $this->view('citizen/map', compact('categories', 'stats', 'mapCenter'));
     }
 
     public function beforeAfter(): void {
@@ -260,12 +281,13 @@ class CitizenController extends Controller {
             SELECT r.id, r.title, r.tracking_code, r.status, r.resolved_at,
                    (SELECT ri.filename FROM report_images ri WHERE ri.report_id = r.id ORDER BY ri.created_at ASC LIMIT 1) as before_photo,
                    (SELECT ip.filename FROM intervention_photos ip WHERE ip.report_id = r.id AND ip.photo_type = 'after' ORDER BY ip.created_at DESC LIMIT 1) as after_photo,
+                   (SELECT ip.intervention_id FROM intervention_photos ip WHERE ip.report_id = r.id AND ip.photo_type = 'after' ORDER BY ip.created_at DESC LIMIT 1) as after_intervention_id,
                    c.name as category_name, c.color as category_color, com.name as commune_name
             FROM reports r
             JOIN categories c ON r.category_id = c.id
             JOIN communes com ON r.commune_id = com.id
             WHERE r.deleted_at IS NULL AND r.citizen_id = ? AND r.status IN ('resolved','validated','closed')
-            HAVING before_photo IS NOT NULL AND after_photo IS NOT NULL
+            HAVING before_photo IS NOT NULL AND after_photo IS NOT NULL AND after_intervention_id IS NOT NULL
             ORDER BY r.resolved_at DESC
             LIMIT 20
         ");

@@ -102,12 +102,29 @@ class DashboardController extends Controller {
         $period = $_GET['period'] ?? '';
         $periodSql = '';
         $periodLabel = 'Tout';
+
+        $dateFrom = $_GET['date_from'] ?? '';
+        $dateTo = $_GET['date_to'] ?? '';
+        if ($dateFrom && $dateTo) {
+            $periodSql = " AND r.created_at BETWEEN ? AND ?";
+            $periodLabel = $dateFrom . ' → ' . $dateTo;
+            return [$period, $periodSql, $periodLabel, [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']];
+        } elseif ($dateFrom) {
+            $periodSql = " AND r.created_at >= ?";
+            $periodLabel = 'Depuis ' . $dateFrom;
+            return [$period, $periodSql, $periodLabel, [$dateFrom . ' 00:00:00']];
+        } elseif ($dateTo) {
+            $periodSql = " AND r.created_at <= ?";
+            $periodLabel = 'Jusqu\'au ' . $dateTo;
+            return [$period, $periodSql, $periodLabel, [$dateTo . ' 23:59:59']];
+        }
+
         if ($period === 'today') { $periodSql = " AND DATE(r.created_at) = CURDATE()"; $periodLabel = "Aujourd'hui"; }
         elseif ($period === 'week') { $periodSql = " AND r.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"; $periodLabel = '7 derniers jours'; }
         elseif ($period === 'month') { $periodSql = " AND MONTH(r.created_at) = MONTH(CURDATE()) AND YEAR(r.created_at) = YEAR(CURDATE())"; $periodLabel = 'Ce mois'; }
         elseif ($period === 'quarter') { $periodSql = " AND r.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"; $periodLabel = '3 derniers mois'; }
         elseif ($period === 'year') { $periodSql = " AND YEAR(r.created_at) = YEAR(CURDATE())"; $periodLabel = "Cette année"; }
-        return [$period, $periodSql, $periodLabel];
+        return [$period, $periodSql, $periodLabel, []];
     }
 
     private function getChartQueries($db, string $where, array $params) {
@@ -135,60 +152,96 @@ class DashboardController extends Controller {
         $mapData->execute($params);
         $mapData = $mapData->fetchAll();
 
-        $byMonth = $db->prepare("SELECT MONTH(r.created_at) as month, COUNT(r.id) as count FROM reports r WHERE {$where} GROUP BY MONTH(r.created_at) ORDER BY month ASC");
+        $byMonth = $db->prepare("SELECT DATE_FORMAT(r.created_at, '%Y-%m') as month, COUNT(r.id) as count FROM reports r WHERE {$where} GROUP BY DATE_FORMAT(r.created_at, '%Y-%m') ORDER BY month ASC");
         $byMonth->execute($params);
         $byMonth = $byMonth->fetchAll();
 
-        return compact('byCategory', 'bySubcategory', 'byPriority', 'byStatus', 'recentReports', 'mapData', 'byMonth');
+        $byMonthEvolution = $db->prepare("SELECT DATE_FORMAT(r.created_at, '%Y-%m') as month,
+            COUNT(r.id) as total,
+            SUM(CASE WHEN r.status IN ('resolved','validated','closed') THEN 1 ELSE 0 END) as resolved,
+            SUM(CASE WHEN r.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+            SUM(CASE WHEN r.status IN ('submitted','acknowledged','assigned') THEN 1 ELSE 0 END) as submitted,
+            SUM(CASE WHEN r.priority = 'urgent' AND r.status NOT IN ('resolved','closed') THEN 1 ELSE 0 END) as urgent
+            FROM reports r WHERE {$where} GROUP BY DATE_FORMAT(r.created_at, '%Y-%m') ORDER BY month ASC");
+        $byMonthEvolution->execute($params);
+        $byMonthEvolution = $byMonthEvolution->fetchAll();
+
+        return compact('byCategory', 'bySubcategory', 'byPriority', 'byStatus', 'recentReports', 'mapData', 'byMonth', 'byMonthEvolution');
     }
 
     private function getActivityHeatmap($db, string $where, array $params): array {
         $heatSql = "SELECT HOUR(h.created_at) as hour, DAYOFWEEK(h.created_at) as day, COUNT(*) as count
             FROM report_history h
             JOIN reports r ON h.report_id = r.id
-            WHERE r.deleted_at IS NULL AND h.created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+            WHERE {$where} AND h.created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)
             GROUP BY HOUR(h.created_at), DAYOFWEEK(h.created_at)";
         $heatStmt = $db->prepare($heatSql);
-        $heatStmt->execute([]);
+        $heatStmt->execute($params);
         return $heatStmt->fetchAll();
     }
 
-    private function getKPIs($db, string $where, array $params, string $periodSql): array {
-        $total = $this->count($db, $where . $periodSql, $params);
-        $submitted = $this->count($db, $where . $periodSql, $params, " AND r.status = 'submitted'");
-        $inProgress = $this->count($db, $where . $periodSql, $params, " AND r.status = 'in_progress'");
-        $resolved = $this->count($db, $where . $periodSql, $params, " AND r.status IN ('resolved','validated')");
-        $urgent = $this->count($db, $where . $periodSql, $params, " AND r.priority = 'urgent' AND r.status NOT IN ('resolved','closed')");
-        $today = $this->count($db, $where, $params, " AND DATE(r.created_at) = CURDATE()");
-        $pending = $this->count($db, $where . $periodSql, $params, " AND r.status IN ('submitted','acknowledged')");
-        $closed = $this->count($db, $where . $periodSql, $params, " AND r.status = 'closed'");
-        $pendingReview = $this->count($db, $where . $periodSql, $params, " AND r.status = 'pending_review'");
-        $pendingUnite = $this->count($db, $where, $params, " AND r.status = 'pending_unite'");
-        $overdue = $this->count($db, $where, $params, " AND r.deadline_at IS NOT NULL AND r.deadline_at < NOW() AND r.status NOT IN ('resolved','closed','rejected')");
+    private function getKPIs($db, string $where, array $params): array {
+        $sql = "SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN r.status = 'submitted' THEN 1 ELSE 0 END) as submitted,
+            SUM(CASE WHEN r.status = 'in_progress' THEN 1 ELSE 0 END) as inProgress,
+            SUM(CASE WHEN r.status IN ('resolved','validated') THEN 1 ELSE 0 END) as resolved,
+            SUM(CASE WHEN r.priority = 'urgent' AND r.status NOT IN ('resolved','closed') THEN 1 ELSE 0 END) as urgent,
+            SUM(CASE WHEN DATE(r.created_at) = CURDATE() THEN 1 ELSE 0 END) as today,
+            SUM(CASE WHEN r.status IN ('submitted','acknowledged') THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN r.status = 'closed' THEN 1 ELSE 0 END) as closed,
+            SUM(CASE WHEN r.status = 'pending_review' THEN 1 ELSE 0 END) as pendingReview,
+            SUM(CASE WHEN r.status = 'pending_unite' THEN 1 ELSE 0 END) as pendingUnite,
+            SUM(CASE WHEN r.deadline_at IS NOT NULL AND r.deadline_at < NOW() AND r.status NOT IN ('resolved','closed','rejected') THEN 1 ELSE 0 END) as overdue
+            FROM reports r WHERE {$where}";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $row = $stmt->fetch();
+        $total = (int)$row['total'];
+        $submitted = (int)$row['submitted'];
+        $inProgress = (int)$row['inProgress'];
+        $resolved = (int)$row['resolved'];
+        $urgent = (int)$row['urgent'];
+        $today = (int)$row['today'];
+        $pending = (int)$row['pending'];
+        $closed = (int)$row['closed'];
+        $pendingReview = (int)$row['pendingReview'];
+        $pendingUnite = (int)$row['pendingUnite'];
+        $overdue = (int)$row['overdue'];
 
-        $prevWhere = str_replace('MONTH(r.created_at) = MONTH(CURDATE()) AND YEAR(r.created_at) = YEAR(CURDATE())', 'MONTH(r.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(r.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))', $periodSql);
+        $prevWhere = str_replace('MONTH(r.created_at) = MONTH(CURDATE()) AND YEAR(r.created_at) = YEAR(CURDATE())', 'MONTH(r.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(r.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))', $where);
         $prevWhere = str_replace('r.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)', 'r.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND r.created_at < DATE_SUB(CURDATE(), INTERVAL 7 DAY)', $prevWhere);
         $prevWhere = str_replace('r.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)', 'r.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND r.created_at < DATE_SUB(CURDATE(), INTERVAL 3 MONTH)', $prevWhere);
         $prevWhere = str_replace('YEAR(r.created_at) = YEAR(CURDATE())', 'YEAR(r.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))', $prevWhere);
         $prevWhere = str_replace('DATE(r.created_at) = CURDATE()', 'DATE(r.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)', $prevWhere);
 
-        $prevTotal = $this->count($db, $where . $prevWhere, $params);
-        $prevPending = $this->count($db, $where . $prevWhere, $params, " AND r.status IN ('submitted','acknowledged')");
-        $prevInProgress = $this->count($db, $where . $prevWhere, $params, " AND r.status = 'in_progress'");
-        $prevResolved = $this->count($db, $where . $prevWhere, $params, " AND r.status IN ('resolved','validated')");
-        $prevUrgent = $this->count($db, $where . $prevWhere, $params, " AND r.priority = 'urgent' AND r.status NOT IN ('resolved','closed')");
+        $prevSql = "SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN r.status IN ('submitted','acknowledged') THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN r.status = 'in_progress' THEN 1 ELSE 0 END) as inProgress,
+            SUM(CASE WHEN r.status IN ('resolved','validated') THEN 1 ELSE 0 END) as resolved,
+            SUM(CASE WHEN r.priority = 'urgent' AND r.status NOT IN ('resolved','closed') THEN 1 ELSE 0 END) as urgent
+            FROM reports r WHERE {$prevWhere}";
+        $prevStmt = $db->prepare($prevSql);
+        $prevStmt->execute($params);
+        $prev = $prevStmt->fetch();
+        $prevTotal = (int)$prev['total'];
+        $prevPending = (int)$prev['pending'];
+        $prevInProgress = (int)$prev['inProgress'];
+        $prevResolved = (int)$prev['resolved'];
+        $prevUrgent = (int)$prev['urgent'];
 
         return compact('total', 'submitted', 'inProgress', 'resolved', 'urgent', 'today', 'pending', 'closed', 'pendingReview', 'pendingUnite', 'overdue',
             'prevTotal', 'prevPending', 'prevInProgress', 'prevResolved', 'prevUrgent');
     }
 
     private function adminCentralDashboard($db, int $userId): void {
-        [$period, $periodSql, $periodLabel] = $this->getPeriodSql();
+        [$period, $periodSql, $periodLabel, $dateParams] = $this->getPeriodSql();
         $scope = Rbac::scopeReports();
-        $where = "r.deleted_at IS NULL" . $scope['where'];
-        $params = $scope['params'];
+        $where = "r.deleted_at IS NULL" . $scope['where'] . $periodSql;
+        $params = array_merge($scope['params'], $dateParams);
 
-        $k = $this->getKPIs($db, $where, $params, $periodSql);
+        $k = $this->getKPIs($db, $where, $params);
         $charts = $this->getChartQueries($db, $where, $params);
         $charts['activityHeatmap'] = $this->getActivityHeatmap($db, $where, $params);
 
@@ -196,21 +249,34 @@ class DashboardController extends Controller {
         $byDaira->execute($params);
         $byDaira = $byDaira->fetchAll();
 
+        $topCategories = $db->prepare("SELECT c.name, COUNT(r.id) as count FROM reports r JOIN categories c ON r.category_id = c.id WHERE {$where} GROUP BY c.id ORDER BY count DESC LIMIT 5");
+        $topCategories->execute($params);
+        $topCategories = $topCategories->fetchAll();
+
+        $topCommunes = $db->prepare("SELECT co.name, COUNT(r.id) as count FROM reports r JOIN communes co ON r.commune_id = co.id WHERE {$where} GROUP BY co.id ORDER BY count DESC LIMIT 5");
+        $topCommunes->execute($params);
+        $topCommunes = $topCommunes->fetchAll();
+
+        $topUrgent = $db->prepare("SELECT tracking_code, title, priority FROM reports r WHERE {$where} AND r.priority = 'urgent' ORDER BY r.created_at DESC LIMIT 5");
+        $topUrgent->execute($params);
+        $topUrgent = $topUrgent->fetchAll();
+
         $userStats = $db->query("SELECT COUNT(*) FROM users WHERE deleted_at IS NULL")->fetchColumn();
         $orgStats = $db->query("SELECT COUNT(*) FROM organizations WHERE is_active = 1")->fetchColumn();
 
         $this->view('dashboard/index', array_merge($k, $charts, compact(
-            'byDaira', 'orgStats', 'userStats', 'period', 'periodLabel'
+            'byDaira', 'orgStats', 'userStats', 'period', 'periodLabel',
+            'topCategories', 'topCommunes', 'topUrgent'
         ), ['primaryRole' => 'admin_central', 'canViewStats' => true, 'canViewAudit' => true]));
     }
 
     private function orgDashboard($db, int $userId): void {
-        [$period, $periodSql, $periodLabel] = $this->getPeriodSql();
+        [$period, $periodSql, $periodLabel, $dateParams] = $this->getPeriodSql();
         $scope = Rbac::scopeReports();
-        $where = "r.deleted_at IS NULL" . $scope['where'];
-        $params = $scope['params'];
+        $where = "r.deleted_at IS NULL" . $scope['where'] . $periodSql;
+        $params = array_merge($scope['params'], $dateParams);
 
-        $k = $this->getKPIs($db, $where, $params, $periodSql);
+        $k = $this->getKPIs($db, $where, $params);
         $charts = $this->getChartQueries($db, $where, $params);
         $charts['activityHeatmap'] = $this->getActivityHeatmap($db, $where, $params);
 
@@ -232,13 +298,13 @@ class DashboardController extends Controller {
     }
 
     private function dairaDashboard($db, int $userId): void {
-        [$period, $periodSql, $periodLabel] = $this->getPeriodSql();
+        [$period, $periodSql, $periodLabel, $dateParams] = $this->getPeriodSql();
         $scope = Rbac::scopeReports();
-        $where = "r.deleted_at IS NULL" . $scope['where'];
-        $params = $scope['params'];
+        $where = "r.deleted_at IS NULL" . $scope['where'] . $periodSql;
+        $params = array_merge($scope['params'], $dateParams);
         $dairaId = Session::get('daira_id');
 
-        $k = $this->getKPIs($db, $where, $params, $periodSql);
+        $k = $this->getKPIs($db, $where, $params);
         $charts = $this->getChartQueries($db, $where, $params);
         $charts['activityHeatmap'] = $this->getActivityHeatmap($db, $where, $params);
 
@@ -262,12 +328,12 @@ class DashboardController extends Controller {
     }
 
     private function sectionDashboard($db, int $userId): void {
-        [$period, $periodSql, $periodLabel] = $this->getPeriodSql();
+        [$period, $periodSql, $periodLabel, $dateParams] = $this->getPeriodSql();
         $scope = Rbac::scopeReports();
-        $where = "r.deleted_at IS NULL" . $scope['where'];
-        $params = $scope['params'];
+        $where = "r.deleted_at IS NULL" . $scope['where'] . $periodSql;
+        $params = array_merge($scope['params'], $dateParams);
 
-        $k = $this->getKPIs($db, $where, $params, $periodSql);
+        $k = $this->getKPIs($db, $where, $params);
         $charts = $this->getChartQueries($db, $where, $params);
         $charts['activityHeatmap'] = $this->getActivityHeatmap($db, $where, $params);
 
@@ -318,7 +384,7 @@ class DashboardController extends Controller {
     private function agentDashboard($db, int $userId): void {
         $stmt = $db->prepare("SELECT r.*, c.name as category_name, c.icon as category_icon, c.color as category_color, c.deadline_days,
             d.name as daira_name, com.name as commune_name,
-            (SELECT ip.filename FROM intervention_photos ip WHERE ip.report_id = r.id AND ip.photo_type = 'before' ORDER BY ip.created_at ASC LIMIT 1) as before_photo,
+            (SELECT ri.filename FROM report_images ri WHERE ri.report_id = r.id ORDER BY ri.created_at ASC LIMIT 1) as before_photo,
             (SELECT ip.filename FROM intervention_photos ip WHERE ip.report_id = r.id AND ip.photo_type = 'after' ORDER BY ip.created_at DESC LIMIT 1) as after_photo
             FROM reports r
             JOIN categories c ON r.category_id = c.id
@@ -385,5 +451,51 @@ class DashboardController extends Controller {
         $byMonth = $stmt->fetchAll();
 
         $this->view('dashboard/impact', compact('stats', 'badges', 'badgeDefs', 'recent', 'byCategory', 'byMonth'));
+    }
+
+    public function commandCenter(): void {
+        $this->auth();
+        if (!Rbac::minLevel(7)) {
+            $this->withError('Accès non autorisé.');
+            $this->redirect('/dashboard');
+            return;
+        }
+        $this->view('dashboard/command_center');
+    }
+
+    public function commandCenterApi(): void {
+        $this->auth();
+        if (!Rbac::minLevel(7)) { $this->json(['error' => 'forbidden'], 403); return; }
+        $db = Database::getConnection();
+
+        $total = $db->query("SELECT COUNT(*) FROM reports WHERE deleted_at IS NULL")->fetchColumn();
+        $pending = $db->query("SELECT COUNT(*) FROM reports WHERE deleted_at IS NULL AND status IN ('submitted','acknowledged')")->fetchColumn();
+        $inProgress = $db->query("SELECT COUNT(*) FROM reports WHERE deleted_at IS NULL AND status = 'in_progress'")->fetchColumn();
+        $resolved = $db->query("SELECT COUNT(*) FROM reports WHERE deleted_at IS NULL AND status IN ('resolved','validated','closed')")->fetchColumn();
+        $urgent = $db->query("SELECT COUNT(*) FROM reports WHERE deleted_at IS NULL AND priority = 'urgent' AND status NOT IN ('resolved','closed','rejected')")->fetchColumn();
+        $today = $db->query("SELECT COUNT(*) FROM reports WHERE deleted_at IS NULL AND DATE(created_at) = CURDATE()")->fetchColumn();
+        $overdue = $db->query("SELECT COUNT(*) FROM reports WHERE deleted_at IS NULL AND deadline_at IS NOT NULL AND deadline_at < NOW() AND status NOT IN ('resolved','closed','rejected')")->fetchColumn();
+
+        $recent = $db->query("SELECT r.id, r.tracking_code, r.title, r.status, r.priority, r.created_at, c.name as category_name, d.name as daira_name
+            FROM reports r JOIN categories c ON r.category_id = c.id JOIN dairas d ON r.daira_id = d.id
+            WHERE r.deleted_at IS NULL ORDER BY r.created_at DESC LIMIT 10")->fetchAll();
+
+        $byStatus = $db->query("SELECT status, COUNT(*) as count FROM reports WHERE deleted_at IS NULL GROUP BY status")->fetchAll();
+        $byPriority = $db->query("SELECT priority, COUNT(*) as count FROM reports WHERE deleted_at IS NULL GROUP BY priority")->fetchAll();
+
+        $heatData = $db->query("SELECT HOUR(h.created_at) as hour, DAYOFWEEK(h.created_at) as day, COUNT(*) as count
+            FROM report_history h JOIN reports r ON h.report_id = r.id
+            WHERE r.deleted_at IS NULL AND h.created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+            GROUP BY HOUR(h.created_at), DAYOFWEEK(h.created_at)")->fetchAll();
+
+        $mapData = $db->query("SELECT r.id, r.tracking_code, r.title, r.status, r.priority, r.latitude, r.longitude, c.name as category_name
+            FROM reports r JOIN categories c ON r.category_id = c.id
+            WHERE r.deleted_at IS NULL AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
+            ORDER BY r.created_at DESC LIMIT 200")->fetchAll();
+
+        $this->json(compact(
+            'total', 'pending', 'inProgress', 'resolved', 'urgent', 'today', 'overdue',
+            'recent', 'byStatus', 'byPriority', 'heatData', 'mapData'
+        ));
     }
 }

@@ -6,7 +6,15 @@
 
 <?php if (empty($pairs)): ?>
 <div class="c-empty c-anim-fade c-delay-1">
-    <i class="fas fa-arrows-left-right"></i>
+    <svg class="c-empty-svg" viewBox="0 0 140 120" fill="none">
+        <circle class="c-sv-circle" cx="70" cy="60" r="50"/>
+        <rect x="40" y="44" width="24" height="32" rx="6" fill="var(--c-accent-surface)" stroke="var(--c-accent)" stroke-width="1.5" opacity="0.6"/>
+        <rect x="76" y="44" width="24" height="32" rx="6" fill="var(--c-green-surface)" stroke="var(--c-green)" stroke-width="1.5" opacity="0.6"/>
+        <path class="c-sv-float" d="M52 60l4 4 6-8" stroke="var(--c-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M84 60l4 4 6-8" stroke="var(--c-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.8"/>
+        <circle class="c-sv-dot" cx="36" cy="38" r="4"/>
+        <circle class="c-sv-dot" cx="106" cy="42" r="3"/>
+    </svg>
     <h5>Aucune comparaison disponible</h5>
     <p>Les comparaisons avant/après apparaîtront ici une fois les travaux terminés.</p>
 </div>
@@ -15,7 +23,7 @@
 <div class="c-card c-anim-fade" style="animation-delay:<?= ($i + 1) * 0.06 ?>s;overflow:hidden;">
     <div class="c-compare" data-compare>
         <img src="/uploads/reports/<?= htmlspecialchars($pair['before_photo']) ?>" class="c-compare-before" alt="Avant">
-        <img src="/uploads/interventions/<?= $pair['id'] ?>/<?= htmlspecialchars($pair['after_photo']) ?>" class="c-compare-after" alt="Après">
+        <img src="/uploads/interventions/<?= htmlspecialchars($pair['id']) ?>/<?= htmlspecialchars($pair['after_photo']) ?>" class="c-compare-after" alt="Après">
         <div class="c-compare-slider" data-slider></div>
         <span class="c-compare-label before">Avant</span>
         <span class="c-compare-label after">Après</span>

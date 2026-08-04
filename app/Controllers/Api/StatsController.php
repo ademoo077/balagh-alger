@@ -2,6 +2,7 @@
 namespace App\Controllers\Api;
 
 use App\Helpers\Database;
+use App\Helpers\Rbac;
 use App\Controllers\Controller;
 
 class StatsController extends Controller {
@@ -21,7 +22,11 @@ class StatsController extends Controller {
 
     public function communeRanking(): void {
         $db = Database::getConnection();
-        $ranking = $db->query("
+        $scope = Rbac::scopeReports();
+        $where = "r.deleted_at IS NULL" . $scope['where'];
+        $params = $scope['params'];
+
+        $stmt = $db->prepare("
             SELECT com.name as commune_name, d.name as daira_name,
                    COUNT(r.id) as total,
                    SUM(CASE WHEN r.status = 'resolved' THEN 1 ELSE 0 END) as resolved,
@@ -30,12 +35,13 @@ class StatsController extends Controller {
             FROM reports r
             JOIN communes com ON r.commune_id = com.id
             JOIN dairas d ON r.daira_id = d.id
-            WHERE r.deleted_at IS NULL
+            WHERE {$where}
             GROUP BY com.id, com.name, d.name
             HAVING total > 0
             ORDER BY month_count DESC, resolution_rate DESC
             LIMIT 20
-        ")->fetchAll();
-        $this->json($ranking);
+        ");
+        $stmt->execute($params);
+        $this->json($stmt->fetchAll());
     }
 }

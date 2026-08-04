@@ -44,7 +44,7 @@ class Badge {
         $countStmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE citizen_id = ? AND deleted_at IS NULL");
         $countStmt->execute([$userId]);
         $count = (int) $countStmt->fetchColumn();
-        $stmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE citizen_id = ? AND status = 'resolved' AND deleted_at IS NULL");
+        $stmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE citizen_id = ? AND status IN ('resolved','validated') AND deleted_at IS NULL");
         $stmt->execute([$userId]);
         $resolved = (int)$stmt->fetchColumn();
 
@@ -65,7 +65,7 @@ class Badge {
         $stmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE citizen_id = ? AND deleted_at IS NULL");
         $stmt->execute([$userId]);
         $total = (int)$stmt->fetchColumn();
-        $stmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE citizen_id = ? AND status = 'resolved' AND deleted_at IS NULL");
+        $stmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE citizen_id = ? AND status IN ('resolved','validated') AND deleted_at IS NULL");
         $stmt->execute([$userId]);
         $resolved = (int)$stmt->fetchColumn();
         $stmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE citizen_id = ? AND status IN ('submitted','acknowledged','assigned','in_progress') AND deleted_at IS NULL");

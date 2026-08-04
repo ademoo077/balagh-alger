@@ -31,15 +31,84 @@
 
 <div class="c-section-title c-anim-fade">
     <h6><i class="fas fa-bell"></i> Notifications</h6>
-    <?php if (!empty($notifications)): ?>
-    <form method="POST" action="/notifications/read-all" style="margin:0;">
-        <input type="hidden" name="_token" value="<?= $csrfToken ?>">
-        <button type="submit" class="c-btn c-btn-outline c-btn-sm" style="font-size:0.72rem;padding:6px 12px;">
-            <i class="fas fa-check-double"></i> Tout marquer lu
+    <div style="display:flex;gap:8px;">
+        <?php if (!empty($notifications)): ?>
+        <form method="POST" action="/notifications/read-all" style="margin:0;">
+            <input type="hidden" name="_token" value="<?= $csrfToken ?>">
+            <button type="submit" class="c-btn c-btn-outline c-btn-sm" style="font-size:0.72rem;padding:6px 12px;">
+                <i class="fas fa-check-double"></i> Tout marquer lu
+            </button>
+        </form>
+        <?php endif; ?>
+        <button class="c-btn c-btn-outline c-btn-sm" id="pushToggle" style="font-size:0.72rem;padding:6px 12px;display:none;">
+            <i class="fas fa-bell-slash" id="pushToggleIcon"></i>
+            <span id="pushToggleLabel">Push</span>
         </button>
-    </form>
-    <?php endif; ?>
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var btn = document.getElementById('pushToggle');
+    var icon = document.getElementById('pushToggleIcon');
+    var label = document.getElementById('pushToggleLabel');
+    if (!btn || !window.BalaghPush) return;
+
+    function updateUI() {
+        if (window.BalaghPush.enabled) {
+            btn.style.background = 'var(--c-accent-surface)';
+            btn.style.color = 'var(--c-accent)';
+            btn.style.borderColor = 'var(--c-accent)';
+            icon.className = 'fas fa-bell';
+            label.textContent = 'Activées';
+        } else {
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.style.borderColor = '';
+            icon.className = 'fas fa-bell-slash';
+            label.textContent = 'Désactivées';
+        }
+    }
+
+    function initPushToggle() {
+        if (window.__swReg) {
+            window.__swReg.pushManager.getSubscription().then(function(sub) {
+                window.BalaghPush.enabled = !!sub;
+                btn.style.display = 'inline-flex';
+                updateUI();
+                return;
+            });
+        } else {
+            var stored = localStorage.getItem('balagh-push');
+            if (stored === '1') window.BalaghPush.enabled = true;
+            if (stored !== null) btn.style.display = 'inline-flex';
+        }
+        updateUI();
+    }
+
+    initPushToggle();
+    // Retry if SW hasn't registered yet
+    if (!window.__swReg) {
+        var iv = setInterval(function() {
+            if (window.__swReg) {
+                clearInterval(iv);
+                window.__swReg.pushManager.getSubscription().then(function(sub) {
+                    window.BalaghPush.enabled = !!sub;
+                    updateUI();
+                });
+            }
+        }, 300);
+    }
+
+    btn.addEventListener('click', function() {
+        if (window.BalaghPush.enabled) {
+            window.BalaghPush.unsubscribe().then(function() { updateUI(); });
+        } else {
+            window.BalaghPush.subscribe().then(function() { updateUI(); }).catch(function() {});
+        }
+    });
+});
+</script>
 
 <?php
 $typeIcons = [

@@ -54,7 +54,7 @@
         <div class="mission-photos">
             <div class="mission-photo">
                 <?php if ($m['before_photo']): ?>
-                    <img src="/uploads/interventions/<?= $m['id'] ?>/<?= htmlspecialchars($m['before_photo']) ?>" alt="Avant" loading="lazy">
+                    <img src="/uploads/reports/<?= htmlspecialchars($m['before_photo']) ?>" alt="Avant" loading="lazy">
                     <span class="photo-label"><?= __('interventions.before') ?></span>
                 <?php else: ?>
                     <div class="photo-placeholder"><i class="fas fa-camera"></i></div>
