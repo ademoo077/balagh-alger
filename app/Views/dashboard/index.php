@@ -40,13 +40,37 @@
                 <i class="fas fa-file-pdf me-1"></i> <?= __('ui.monthly_report') ?>
             </a>
             <?php endif; ?>
+            <button class="btn btn-sm btn-outline-success" onclick="exportDashboardCSV()" title="Exporter CSV">
+                <i class="fas fa-file-csv me-1"></i> CSV
+            </button>
             <a href="/reports/create" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i><?= __('ui.new_report') ?></a>
         </div>
     </div>
 </div>
 
+<!-- Drill-down Filter -->
+<div id="drilldownChip" class="mb-3" style="display:none;">
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-accent" style="background:var(--accent);color:#fff;padding:6px 12px;border-radius:10px;font-size:0.78rem;">
+            <i class="fas fa-filter me-1"></i>Filtre : <span id="drilldownLabel"></span>
+        </span>
+        <button class="btn btn-sm btn-outline-secondary" style="border-radius:8px;padding:2px 10px;font-size:0.72rem;" onclick="clearDrilldown()">
+            <i class="fas fa-times"></i> Effacer
+        </button>
+    </div>
+</div>
+
 <!-- KPI Cards -->
 <div class="row g-3 mb-4">
+    <?php
+    function periodArrow(int $current, int $prev): string {
+        if ($prev == 0 && $current == 0) return '';
+        $diff = $prev == 0 ? 100 : round((($current - $prev) / $prev) * 100);
+        if ($diff > 0) return '<span class="period-arrow up"><i class="fas fa-arrow-up"></i> +' . $diff . '%</span>';
+        if ($diff < 0) return '<span class="period-arrow down"><i class="fas fa-arrow-down"></i> ' . $diff . '%</span>';
+        return '<span class="period-arrow stable"><i class="fas fa-minus"></i> 0%</span>';
+    }
+    ?>
     <div class="col-xl-3 col-sm-6">
         <div class="card stat-card accent animate-fade-in-up stagger-1">
             <div class="card-body">
@@ -55,7 +79,10 @@
                         <i class="fas fa-flag"></i>
                     </div>
                     <div class="ms-3">
-                        <h3 data-count-up="<?= $total ?>"><?= number_format($total) ?></h3>
+                        <div class="d-flex align-items-center gap-2">
+                            <h3 data-count-up="<?= $total ?>"><?= number_format($total) ?></h3>
+                            <?= periodArrow($total, $prevTotal ?? 0) ?>
+                        </div>
                         <div class="stat-label"><?= __('dashboard.total_reports') ?></div>
                     </div>
                 </div>
@@ -70,7 +97,10 @@
                         <i class="fas fa-clock"></i>
                     </div>
                     <div class="ms-3">
-                        <h3 data-count-up="<?= $pending ?>"><?= number_format($pending) ?></h3>
+                        <div class="d-flex align-items-center gap-2">
+                            <h3 data-count-up="<?= $pending ?>"><?= number_format($pending) ?></h3>
+                            <?= periodArrow($pending, $prevPending ?? 0) ?>
+                        </div>
                         <div class="stat-label"><?= __('dashboard.pending') ?></div>
                     </div>
                 </div>
@@ -85,7 +115,10 @@
                         <i class="fas fa-spinner"></i>
                     </div>
                     <div class="ms-3">
-                        <h3 data-count-up="<?= $inProgress ?>"><?= number_format($inProgress) ?></h3>
+                        <div class="d-flex align-items-center gap-2">
+                            <h3 data-count-up="<?= $inProgress ?>"><?= number_format($inProgress) ?></h3>
+                            <?= periodArrow($inProgress, $prevInProgress ?? 0) ?>
+                        </div>
                         <div class="stat-label"><?= __('dashboard.in_progress') ?></div>
                     </div>
                 </div>
@@ -100,7 +133,10 @@
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div class="ms-3">
-                        <h3 data-count-up="<?= $resolved ?>"><?= number_format($resolved) ?></h3>
+                        <div class="d-flex align-items-center gap-2">
+                            <h3 data-count-up="<?= $resolved ?>"><?= number_format($resolved) ?></h3>
+                            <?= periodArrow($resolved, $prevResolved ?? 0) ?>
+                        </div>
                         <div class="stat-label"><?= __('dashboard.resolved') ?></div>
                     </div>
                 </div>
@@ -342,6 +378,30 @@
     </div>
 </div>
 
+<!-- Activity Heatmap -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card animate-fade-in-up">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-fire me-2 text-red"></i>Activité — Heures / Jours</h6>
+                <small class="text-muted">3 derniers mois</small>
+            </div>
+            <div class="card-body">
+                <div id="heatmapGrid" class="heatmap-grid"></div>
+                <div class="heatmap-legend mt-2">
+                    <span style="font-size:0.7rem;color:var(--text-muted);">Peu</span>
+                    <span class="heatmap-legend-box" style="background:var(--card-bg);border:1px solid var(--border);"></span>
+                    <span class="heatmap-legend-box" style="background:rgba(99,102,241,0.2);"></span>
+                    <span class="heatmap-legend-box" style="background:rgba(99,102,241,0.45);"></span>
+                    <span class="heatmap-legend-box" style="background:rgba(99,102,241,0.7);"></span>
+                    <span class="heatmap-legend-box" style="background:rgba(99,102,241,1);"></span>
+                    <span style="font-size:0.7rem;color:var(--text-muted);">Beaucoup</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Map -->
 <div class="row g-3 mb-4">
     <div class="col-12">
@@ -430,18 +490,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var chartDefaults = { responsive: true, maintainAspectRatio: false };
 
-    var catData = <?= json_encode($byCategory) ?>;
-    if (catData.length > 0) {
-        new Chart(document.getElementById('categoryChart'), {
-            type: 'doughnut',
-            data: {
-                labels: catData.map(function(d) { return d.name; }),
-                datasets: [{ data: catData.map(function(d) { return d.count; }), backgroundColor: catData.map(function(d) { return d.color || '#6366f1'; }), borderWidth: 0, hoverOffset: 6 }]
-            },
-            options: Object.assign({}, chartDefaults, { cutout: '68%', plugins: { legend: { position: 'bottom', labels: { color: textColor, padding: 10, font: { size: 11, family: '<?= $isRtl ? "Noto Sans Arabic, Inter" : "Inter" ?>' }, usePointStyle: true, pointStyleWidth: 8 } } } })
-        });
-    }
-
     var dairaData = <?= json_encode($byDaira ?? []) ?>;
     var communeData = <?= json_encode($byCommune ?? []) ?>;
     var chartData = communeData.length > 0 ? communeData : dairaData;
@@ -458,31 +506,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    var prioData = <?= json_encode($byPriority) ?>;
     var prioColors = { low: '#059669', medium: '#d97706', high: '#dc2626', urgent: '#b91c1c' };
     var prioLabels = { low: '<?= __('ui.priority_low') ?>', medium: '<?= __('ui.priority_medium') ?>', high: '<?= __('ui.priority_high') ?>', urgent: '<?= __('ui.priority_urgent') ?>' };
-    if (prioData.length > 0) {
-        new Chart(document.getElementById('priorityChart'), {
-            type: 'doughnut',
-            data: {
-                labels: prioData.map(function(d) { return prioLabels[d.priority] || d.priority; }),
-                datasets: [{ data: prioData.map(function(d) { return d.count; }), backgroundColor: prioData.map(function(d) { return prioColors[d.priority] || '#64748b'; }), borderWidth: 0, hoverOffset: 6 }]
-            },
-            options: Object.assign({}, chartDefaults, { cutout: '68%', plugins: { legend: { position: 'bottom', labels: { color: textColor, padding: 10, font: { size: 11, family: '<?= $isRtl ? "Noto Sans Arabic, Inter" : "Inter" ?>' }, usePointStyle: true, pointStyleWidth: 8 } } } })
-        });
-    }
-
-    var subcatData = <?= json_encode($bySubcategory ?? []) ?>;
-    if (subcatData.length > 0 && document.getElementById('subcategoryChart')) {
-        new Chart(document.getElementById('subcategoryChart'), {
-            type: 'bar',
-            data: {
-                labels: subcatData.map(function(d) { return d.subcat_name; }),
-                datasets: [{ data: subcatData.map(function(d) { return d.count; }), backgroundColor: subcatData.map(function(d) { return d.color || '#6366f1'; }), borderRadius: 6, borderSkipped: false }]
-            },
-            options: Object.assign({}, chartDefaults, { indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { afterLabel: function(ctx) { return subcatData[ctx.dataIndex].cat_name; } } } }, scales: { x: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor }, beginAtZero: true }, y: { ticks: { color: textColor, font: { size: 11 } }, grid: { display: false } } } })
-        });
-    }
 
     // Commune Ranking Chart
     fetch('/api/commune-ranking').then(function(r){return r.json()}).then(function(data){
@@ -588,10 +613,182 @@ document.addEventListener('DOMContentLoaded', function() {
     var clockEl = document.getElementById('live-clock');
     if (clockEl) {
         function tick() {
-            clockEl.textContent = new Date().toLocaleTimeString($isRtl ? 'ar-DZ' : 'fr-DZ', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Algiers' });
+            clockEl.textContent = new Date().toLocaleTimeString('<?= $isRtl ? "ar-DZ" : "fr-DZ" ?>', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Algiers' });
         }
         tick();
         setInterval(tick, 1000);
     }
+
+    // ============================================================
+    // FEATURE 3: EXPORT CSV
+    // ============================================================
+    window.exportDashboardCSV = function() {
+        var lines = [];
+        lines.push(['BALAGH ALGER - Dashboard Export'].join(','));
+        lines.push(['Genere le ' + new Date().toLocaleString('fr-DZ')].join(','));
+        lines.push([]);
+        lines.push(['=== KPIs ==='].join(','));
+        lines.push(['Total', <?= $total ?>].join(','));
+        lines.push(['En attente', <?= $pending ?>].join(','));
+        lines.push(['En cours', <?= $inProgress ?>].join(','));
+        lines.push(['Resolu', <?= $resolved ?>].join(','));
+        lines.push(['Urgent', <?= $urgent ?>].join(','));
+        lines.push(['En retard', <?= $overdue ?? 0 ?>].join(','));
+        lines.push([]);
+        lines.push(['=== Par Categorie ===', 'Count'].join(','));
+        var catData = <?= json_encode($byCategory) ?>;
+        catData.forEach(function(c) { lines.push(['"' + c.name.replace(/"/g, '""') + '"', c.count].join(',')); });
+        lines.push([]);
+        lines.push(['=== Par Sous-categorie ===', 'Categorie', 'Count'].join(','));
+        var subData = <?= json_encode($bySubcategory ?? []) ?>;
+        subData.forEach(function(s) { lines.push(['"' + s.subcat_name.replace(/"/g, '""') + '"', '"' + s.cat_name.replace(/"/g, '""') + '"', s.count].join(',')); });
+        lines.push([]);
+        lines.push(['=== Par Priorite ===', 'Count'].join(','));
+        var prioData2 = <?= json_encode($byPriority) ?>;
+        prioData2.forEach(function(p) { lines.push([p.priority, p.count].join(',')); });
+        lines.push([]);
+        lines.push(['=== Par Mois ===', 'Mois', 'Count'].join(','));
+        var monthNames = ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
+        var mData = <?= json_encode($byMonth ?? []) ?>;
+        mData.forEach(function(m) { lines.push([monthNames[m.month - 1] || m.month, m.count].join(',')); });
+        lines.push([]);
+        lines.push(['=== Par Daira ===', 'Count'].join(','));
+        var dData = <?= json_encode($byDaira ?? []) ?>;
+        dData.forEach(function(d) { lines.push(['"' + d.name.replace(/"/g, '""') + '"', d.count].join(',')); });
+        var csv = lines.join('\n');
+        var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'dashboard-balagh-' + new Date().toISOString().slice(0,10) + '.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    // ============================================================
+    // FEATURE 4: ACTIVITY HEATMAP
+    // ============================================================
+    var heatData = <?= json_encode($activityHeatmap ?? []) ?>;
+    var dayLabels = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    var heatGrid = document.getElementById('heatmapGrid');
+    if (heatGrid && heatData.length > 0) {
+        var maxCount = Math.max.apply(null, heatData.map(function(d) { return d.count; }));
+        var heatMap = {};
+        heatData.forEach(function(d) { heatMap[d.day + '_' + d.hour] = d.count; });
+        var html = '<div class="heatmap-label"></div>';
+        for (var h = 0; h < 24; h++) {
+            html += '<div class="heatmap-hour-label">' + (h % 3 === 0 ? h + 'h' : '') + '</div>';
+        }
+        for (var day = 1; day <= 7; day++) {
+            html += '<div class="heatmap-label">' + dayLabels[day - 1] + '</div>';
+            for (var hour = 0; hour < 24; hour++) {
+                var cnt = heatMap[day + '_' + hour] || 0;
+                var intensity = maxCount > 0 ? cnt / maxCount : 0;
+                var alpha = intensity === 0 ? 0 : Math.max(0.15, intensity);
+                var bg = 'rgba(99,102,241,' + alpha.toFixed(2) + ')';
+                var tooltip = dayLabels[day - 1] + ' ' + hour + 'h : ' + cnt + ' action' + (cnt !== 1 ? 's' : '');
+                html += '<div class="heatmap-cell" style="background:' + bg + ';" data-tooltip="' + tooltip + '"></div>';
+            }
+        }
+        heatGrid.innerHTML = html;
+    } else if (heatGrid) {
+        heatGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:1rem;color:var(--text-muted);font-size:0.82rem;">Aucune donnée d\'activité disponible</div>';
+    }
+
+    // ============================================================
+    // FEATURE 1: DRILL-DOWN (Category click → filter charts)
+    // ============================================================
+    var allCatData = <?= json_encode($byCategory) ?>;
+    var allSubData = <?= json_encode($bySubcategory ?? []) ?>;
+    var allPrioData = <?= json_encode($byPriority) ?>;
+    var allRecentData = <?= json_encode($recentReports) ?>;
+    var activeDrilldown = null;
+
+    window.clearDrilldown = function() {
+        activeDrilldown = null;
+        document.getElementById('drilldownChip').style.display = 'none';
+        if (window._catChart) { window._catChart.destroy(); window._catChart = null; }
+        if (window._subChart) { window._subChart.destroy(); window._subChart = null; }
+        if (window._prioChart) { window._prioChart.destroy(); window._prioChart = null; }
+        if (window._dairaChart) { window._dairaChart.destroy(); window._dairaChart = null; }
+        renderCatChart(allCatData);
+        renderSubChart(allSubData);
+        renderPrioChart(allPrioData);
+    };
+
+    window.applyDrilldown = function(catName) {
+        activeDrilldown = catName;
+        document.getElementById('drilldownChip').style.display = 'block';
+        document.getElementById('drilldownLabel').textContent = catName;
+        var filteredSub = allSubData.filter(function(s) { return s.cat_name === catName; });
+        var filteredPrio = [];
+        var prioMap = {};
+        allRecentData.forEach(function(r) {
+            if (r.category_name === catName) {
+                var p = r.priority || 'medium';
+                prioMap[p] = (prioMap[p] || 0) + 1;
+            }
+        });
+        Object.keys(prioMap).forEach(function(k) { filteredPrio.push({ priority: k, count: prioMap[k] }); });
+        var filteredDaira = [];
+        var dairaMap = {};
+        allRecentData.forEach(function(r) {
+            if (r.category_name === catName && r.daira_name) {
+                dairaMap[r.daira_name] = (dairaMap[r.daira_name] || 0) + 1;
+            }
+        });
+        Object.keys(dairaMap).forEach(function(k) { filteredDaira.push({ name: k, count: dairaMap[k] }); });
+        if (window._catChart) { window._catChart.destroy(); window._catChart = null; }
+        if (window._subChart) { window._subChart.destroy(); window._subChart = null; }
+        if (window._prioChart) { window._prioChart.destroy(); window._prioChart = null; }
+        if (window._dairaChart) { window._dairaChart.destroy(); window._dairaChart = null; }
+        renderSubChart(filteredSub);
+        renderPrioChart(filteredPrio);
+        renderDairaChart(filteredDaira);
+    };
+
+    function renderCatChart(data) {
+        var el = document.getElementById('categoryChart');
+        if (!el || data.length === 0) return;
+        window._catChart = new Chart(el, {
+            type: 'doughnut',
+            data: { labels: data.map(function(d) { return d.name; }), datasets: [{ data: data.map(function(d) { return d.count; }), backgroundColor: data.map(function(d) { return d.color || '#6366f1'; }), borderWidth: 0, hoverOffset: 6 }] },
+            options: Object.assign({}, chartDefaults, { cutout: '68%', onClick: function(e, els) { if (els.length > 0) { var idx = els[0].index; applyDrilldown(data[idx].name); } }, plugins: { legend: { position: 'bottom', labels: { color: textColor, padding: 10, font: { size: 11 }, usePointStyle: true, pointStyleWidth: 8 } } } })
+        });
+    }
+
+    function renderSubChart(data) {
+        var el = document.getElementById('subcategoryChart');
+        if (!el || data.length === 0) return;
+        window._subChart = new Chart(el, {
+            type: 'bar',
+            data: { labels: data.map(function(d) { return d.subcat_name; }), datasets: [{ data: data.map(function(d) { return d.count; }), backgroundColor: data.map(function(d) { return d.color || '#6366f1'; }), borderRadius: 6, borderSkipped: false }] },
+            options: Object.assign({}, chartDefaults, { indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { afterLabel: function(ctx) { return data[ctx.dataIndex].cat_name; } } } }, scales: { x: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor }, beginAtZero: true }, y: { ticks: { color: textColor, font: { size: 11 } }, grid: { display: false } } } })
+        });
+    }
+
+    function renderPrioChart(data) {
+        var el = document.getElementById('priorityChart');
+        if (!el || data.length === 0) return;
+        window._prioChart = new Chart(el, {
+            type: 'doughnut',
+            data: { labels: data.map(function(d) { return prioLabels[d.priority] || d.priority; }), datasets: [{ data: data.map(function(d) { return d.count; }), backgroundColor: data.map(function(d) { return prioColors[d.priority] || '#64748b'; }), borderWidth: 0, hoverOffset: 6 }] },
+            options: Object.assign({}, chartDefaults, { cutout: '68%', plugins: { legend: { position: 'bottom', labels: { color: textColor, padding: 10, font: { size: 11 }, usePointStyle: true, pointStyleWidth: 8 } } } })
+        });
+    }
+
+    function renderDairaChart(data) {
+        var el = document.getElementById('dairaChart');
+        if (!el || data.length === 0) return;
+        window._dairaChart = new Chart(el, {
+            type: 'bar',
+            data: { labels: data.map(function(d) { return d.name; }), datasets: [{ data: data.map(function(d) { return d.count; }), backgroundColor: 'rgba(34,211,238,0.6)', borderRadius: 6, borderSkipped: false }] },
+            options: Object.assign({}, chartDefaults, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor } }, y: { ticks: { color: textColor, font: { size: 11 } }, grid: { display: false } } } })
+        });
+    }
+
+    // Init original charts with drill-down capability
+    if (allCatData.length > 0) renderCatChart(allCatData);
+    if (allSubData.length > 0) renderSubChart(allSubData);
+    if (allPrioData.length > 0) renderPrioChart(allPrioData);
 });
 </script>

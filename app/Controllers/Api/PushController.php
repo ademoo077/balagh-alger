@@ -30,13 +30,22 @@ class PushController extends Controller {
     }
 
     public static function sendPush(int $userId, string $title, string $body, string $url = '/notifications'): void {
+        if (\App\Helpers\Queue::isAvailable()) {
+            \App\Helpers\Queue::dispatch(\App\Jobs\SendPushJob::class, [
+                'userId' => $userId, 'title' => $title, 'body' => $body, 'url' => $url,
+            ]);
+            return;
+        }
+        self::sendPushSync($userId, $title, $body, $url);
+    }
+
+    public static function sendPushSync(int $userId, string $title, string $body, string $url = '/notifications'): void {
         $db = Database::getConnection();
         $stmt = $db->prepare("SELECT endpoint, p256dh_key, auth_key FROM push_subscriptions WHERE user_id = ?");
         $stmt->execute([$userId]);
         $subs = $stmt->fetchAll();
         foreach ($subs as $sub) {
             $payload = json_encode(['title' => $title, 'body' => $body, 'url' => $url]);
-            // Web push via curl to browser push service
             $ch = curl_init($sub['endpoint']);
             curl_setopt_array($ch, [
                 CURLOPT_POST => true,

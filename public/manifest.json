@@ -2,7 +2,8 @@
     "name": "Balagh Alger — Signalement Citoyen",
     "short_name": "Balagh",
     "description": "Plateforme de signalement citoyen — Wilaya d'Alger",
-    "start_url": "/dashboard",
+    "id": "/home",
+    "start_url": "/home",
     "display": "standalone",
     "background_color": "#0f172a",
     "theme_color": "#6366f1",
@@ -24,7 +25,14 @@
             "purpose": "any maskable"
         }
     ],
-    "screenshots": [],
+    "screenshots": [
+        {
+            "src": "/assets/img/screenshot-mobile.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "form_factor": "narrow"
+        }
+    ],
     "shortcuts": [
         {
             "name": "Nouveau signalement",

@@ -1,12 +1,4 @@
 <?php $pageTitle = 'Carte'; $activeTab = 'map';
-$db = \App\Helpers\Database::getConnection();
-$categories = $db->query("SELECT id, name, icon, color FROM categories WHERE is_active = 1 ORDER BY name")->fetchAll();
-$stats = $db->query("SELECT 
-    COUNT(*) as total,
-    SUM(CASE WHEN status='submitted' THEN 1 ELSE 0 END) as submitted,
-    SUM(CASE WHEN status='in_progress' OR status='assigned' THEN 1 ELSE 0 END) as in_progress,
-    SUM(CASE WHEN status='resolved' OR status='validated' THEN 1 ELSE 0 END) as resolved
-    FROM reports WHERE deleted_at IS NULL AND latitude IS NOT NULL")->fetch();
 ?>
 
 <div class="c-container-full" style="margin:-12px -16px;position:relative;">

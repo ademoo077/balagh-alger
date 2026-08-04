@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#6366f1">
+    <title>Hors ligne — Balagh Alger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+        .offline-container{max-width:360px;width:100%}
+        .offline-icon{width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15));display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:2rem;color:#6366f1}
+        h1{font-size:1.3rem;font-weight:800;margin-bottom:8px}
+        p{font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:24px}
+        .pending-count{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);border-radius:12px;padding:12px 16px;margin-bottom:24px;display:none;align-items:center;gap:10px;font-size:0.82rem}
+        .pending-count i{color:#f59e0b;font-size:1rem}
+        .pending-count strong{color:#f59e0b}
+        .btn-retry{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;padding:14px 32px;font-size:0.95rem;font-weight:700;cursor:pointer;width:100%;transition:all 0.2s}
+        .btn-retry:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,0.3)}
+        .btn-retry:active{transform:scale(0.98)}
+        .offline-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:32px}
+        .feature{background:rgba(30,41,59,0.5);border:1px solid rgba(51,65,85,0.5);border-radius:12px;padding:16px 12px;text-align:center}
+        .feature i{font-size:1.3rem;color:#6366f1;display:block;margin-bottom:6px}
+        .feature span{font-size:0.72rem;color:#94a3b8;font-weight:600}
+        .brand{margin-top:40px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.78rem;color:#475569}
+        .brand i{color:#6366f1}
+        @media (prefers-color-scheme:light){body{background:#f8fafc;color:#1e293b}.feature{background:#f1f5f9;border-color:#e2e8f0}.feature span{color:#64748b}p{color:#64748b}}
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon"><i class="fas fa-wifi-slash"></i></div>
+        <h1>Vous êtes hors ligne</h1>
+        <p>Connexion internet indisponible. Vos signalements en attente seront envoyés automatiquement dès que la connexion sera rétablie.</p>
+
+        <div class="pending-count" id="pendingCount">
+            <i class="fas fa-clock"></i>
+            <span><strong id="pendingNum">0</strong> signalement(s) en attente d'envoi</span>
+        </div>
+
+        <button class="btn-retry" onclick="location.reload()">
+            <i class="fas fa-rotate-right" style="margin-right:8px;"></i> Réessayer
+        </button>
+
+        <div class="offline-features">
+            <div class="feature">
+                <i class="fas fa-file-circle-plus"></i>
+                <span>Créer un signalement</span>
+            </div>
+            <div class="feature">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Voir mes signalements</span>
+            </div>
+            <div class="feature">
+                <i class="fas fa-map-location-dot"></i>
+                <span>Carte hors ligne</span>
+            </div>
+            <div class="feature">
+                <i class="fas fa-robot"></i>
+                <span>Assistant Balagh</span>
+            </div>
+        </div>
+
+        <div class="brand">
+            <i class="fas fa-bullhorn"></i>
+            <span>Balagh Alger</span>
+        </div>
+    </div>
+    <script>
+    (function(){
+        try {
+            var req = indexedDB.open('balagh-offline', 1);
+            req.onsuccess = function(e) {
+                var db = e.target.result;
+                if (db.objectStoreNames.contains('pending-reports')) {
+                    var tx = db.transaction('pending-reports', 'readonly');
+                    var countReq = tx.objectStore('pending-reports').count();
+                    countReq.onsuccess = function() {
+                        if (countReq.result > 0) {
+                            document.getElementById('pendingCount').style.display = 'flex';
+                            document.getElementById('pendingNum').textContent = countReq.result;
+                        }
+                    };
+                }
+            };
+        } catch(e) {}
+    })();
+    </script>
+</body>
+</html>

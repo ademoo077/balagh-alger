@@ -19,10 +19,13 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
     <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
     <link href="/assets/css/citizen.css" rel="stylesheet">
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/assets/img/icon-192.png" type="image/png">
     <meta name="theme-color" content="#6366f1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Balagh">
     <link rel="apple-touch-icon" href="/assets/img/icon-192.png">
+    <link rel="apple-touch-startup-image" href="/assets/img/icon-512.png">
     <meta name="csrf-token" content="<?= $csrfToken ?>">
     <script>
     (function(){var t=localStorage.getItem('balagh-theme');if(t){document.documentElement.setAttribute('data-bs-theme',t);}})();
@@ -37,6 +40,19 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
     <!-- Offline Banner -->
     <div id="offlineBanner" class="c-offline-banner">
         <i class="fas fa-wifi-slash" style="margin-right:6px;"></i> Vous êtes hors ligne — les envois seront retardés
+    </div>
+
+    <!-- Install PWA Banner -->
+    <div id="installBanner" class="c-install-banner" style="display:none;">
+        <div class="c-install-banner-inner">
+            <div class="c-install-banner-icon"><i class="fas fa-bullhorn"></i></div>
+            <div class="c-install-banner-text">
+                <strong>Installer Balagh</strong>
+                <span>Ajoutez à votre écran d'accueil</span>
+            </div>
+            <button class="c-install-banner-btn" id="installBtn">Installer</button>
+            <button class="c-install-banner-close" id="installDismiss"><i class="fas fa-times"></i></button>
+        </div>
     </div>
 
     <!-- Header -->
@@ -72,13 +88,13 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
         <?php if ($msg = \App\Helpers\Session::getFlash('success')): ?>
         <div class="c-alert c-alert-success">
             <i class="fas fa-check-circle"></i>
-            <span><?= $msg ?></span>
+            <span><?= htmlspecialchars($msg) ?></span>
         </div>
         <?php endif; ?>
         <?php if ($msg = \App\Helpers\Session::getFlash('error')): ?>
         <div class="c-alert c-alert-error">
             <i class="fas fa-exclamation-circle"></i>
-            <span><?= $msg ?></span>
+            <span><?= htmlspecialchars($msg) ?></span>
         </div>
         <?php endif; ?>
 
@@ -94,9 +110,7 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
         <a href="/reports" class="c-nav-item <?= ($activeTab ?? '') === 'reports' ? 'active' : '' ?>">
             <i class="fas fa-clipboard-list"></i>
             <span><?= __('nav.reports') ?></span>
-            <?php if (($unreadCount ?? 0) > 0): ?>
-            <span class="c-nav-badge"></span>
-            <?php endif; ?>
+            <span class="c-nav-badge" id="pendingBadge" style="display:none;"></span>
         </a>
         <a href="/reports/create" class="c-nav-item center-btn" title="Signaler un problème">
             <i class="fas fa-plus"></i>
@@ -194,6 +208,82 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
             return a;
         }
     };
+
+    // ============ PWA INSTALL BANNER ============
+    (function() {
+        if (window.matchMedia('(display-mode: standalone)').matches) return;
+        if (localStorage.getItem('balagh-install-dismissed')) return;
+        var deferredPrompt = null;
+        var banner = document.getElementById('installBanner');
+        var installBtn = document.getElementById('installBtn');
+        var dismissBtn = document.getElementById('installDismiss');
+        if (!banner || !installBtn || !dismissBtn) return;
+
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            banner.style.display = 'block';
+        });
+
+        installBtn.addEventListener('click', function() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function(result) {
+                if (result.outcome === 'accepted') {
+                    banner.style.display = 'none';
+                    if (typeof CToast !== 'undefined') CToast.show('Balagh installé !', 'success');
+                }
+                deferredPrompt = null;
+            });
+        });
+
+        dismissBtn.addEventListener('click', function() {
+            banner.style.display = 'none';
+            localStorage.setItem('balagh-install-dismissed', '1');
+        });
+
+        window.addEventListener('appinstalled', function() {
+            banner.style.display = 'none';
+            deferredPrompt = null;
+        });
+    })();
+
+    // ============ PENDING OFFLINE REPORTS ============
+    (function() {
+        var badge = document.getElementById('pendingBadge');
+        if (!badge || !window.__swReg) return;
+
+        function updatePendingCount() {
+            try {
+                var req = indexedDB.open('balagh-offline', 1);
+                req.onsuccess = function(e) {
+                    var db = e.target.result;
+                    if (db.objectStoreNames.contains('pending-reports')) {
+                        var tx = db.transaction('pending-reports', 'readonly');
+                        var countReq = tx.objectStore('pending-reports').count();
+                        countReq.onsuccess = function() {
+                            if (countReq.result > 0) {
+                                badge.textContent = countReq.result;
+                                badge.style.display = 'flex';
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        };
+                    }
+                };
+            } catch(e) {}
+        }
+
+        updatePendingCount();
+        setInterval(updatePendingCount, 10000);
+
+        // Update on sync complete
+        navigator.serviceWorker.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'SYNC_COMPLETE') {
+                setTimeout(updatePendingCount, 500);
+            }
+        });
+    })();
     </script>
 </body>
 </html>

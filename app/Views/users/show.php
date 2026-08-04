@@ -150,7 +150,7 @@ $statusLabels = ['active' => __('users.active'), 'inactive' => __('users.inactiv
         }
         $statItems = [
             ['icon' => 'fas fa-flag', 'value' => $stats['orgTotal'] ?? 0, 'label' => $primaryRole === 'admin_central' ? __('users.total_reports') : __('users.org_reports')],
-            ['icon' => 'fas fa-link', 'value' => $stats['assigned'] ?? 0, 'label' => __('users.assigned_directly')],
+            ['icon' => 'fas fa-share-nodes', 'value' => $stats['assigned'] ?? 0, 'label' => __('users.assigned_by_you')],
             ['icon' => 'fas fa-clock', 'value' => $pendingOrg, 'label' => __('users.pending_count')],
         ];
     } elseif ($primaryRole === 'chef_unite') {

@@ -3,8 +3,41 @@ namespace App\Helpers;
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use App\Helpers\Database;
+use App\Helpers\Queue;
 
 class PdfHelper {
+    public static function dispatchPdfGeneration(int $reportId): void {
+        if (Queue::isAvailable()) {
+            Queue::dispatch(\App\Jobs\GenerateReportPdfJob::class, ['reportId' => $reportId]);
+        } else {
+            self::generateAndSave($reportId);
+        }
+    }
+
+    public static function generateAndSave(int $reportId): ?string {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("
+            SELECT r.*, c.name as category_name, d.name as daira_name, co.name as commune_name,
+                   o.name as org_name, u.name as citizen_name
+            FROM reports r
+            JOIN categories c ON r.category_id = c.id
+            LEFT JOIN dairas d ON r.daira_id = d.id
+            LEFT JOIN communes co ON r.commune_id = co.id
+            LEFT JOIN organizations o ON r.assigned_to = o.id
+            LEFT JOIN users u ON r.citizen_id = u.id
+            WHERE r.id = ?
+        ");
+        $stmt->execute([$reportId]);
+        $report = $stmt->fetch();
+        if (!$report) return null;
+
+        $pdf = self::generateReportPdf($report);
+        $path = __DIR__ . '/../../storage/pdfs/report_' . $reportId . '.pdf';
+        file_put_contents($path, $pdf);
+        return $path;
+    }
+
     public static function generateReportPdf(array $report): string {
         $options = new Options();
         $options->set('isRemoteEnabled', false);

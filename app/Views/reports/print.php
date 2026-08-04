@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="<?= (Session::get('lang') ?? 'fr') === 'ar' ? 'ar' : 'fr' ?>">
+<html lang="<?= (\App\Helpers\Session::get('lang') ?? 'fr') === 'ar' ? 'ar' : 'fr' ?>">
 <head>
     <meta charset="UTF-8">
     <title><?= __('report_print.title') ?> - <?= $report['tracking_code'] ?></title>

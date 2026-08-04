@@ -1,15 +1,19 @@
-const CACHE_NAME = 'balagh-v2';
+const CACHE_NAME = 'balagh-v3';
 const STATIC_ASSETS = [
     '/',
-    '/assets/css/app.css',
+    '/offline.html',
     '/assets/css/citizen.css',
-    '/assets/js/app.js',
     '/assets/js/citizen.js',
     '/assets/js/i18n.js',
+    '/assets/img/icon-192.png',
     '/manifest.json',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js'
+];
+const PRECACHE_PAGES = [
+    '/home', '/reports', '/reports/create', '/feed', '/my-profile',
+    '/notifications', '/suivi', '/badges', '/leaderboard', '/citizen/map'
 ];
 
 /* ======== IndexedDB helpers ======== */
@@ -82,10 +86,8 @@ function syncPendingReports() {
                 for (var key in data) {
                     if (!data.hasOwnProperty(key)) continue;
                     if (key === 'photos' && Array.isArray(data[key])) {
-                        // Photos stored as base64 — skip large ones, only send small ones
                         data[key].forEach(function(photo) {
                             if (photo.data && photo.data.length < 500000) {
-                                // Convert base64 back to File-like Blob
                                 var byteString = atob(photo.data.split(',')[1]);
                                 var ab = new ArrayBuffer(byteString.length);
                                 var ia = new Uint8Array(ab);
@@ -94,8 +96,6 @@ function syncPendingReports() {
                                 formData.append('photos[]', blob, photo.name || 'photo.jpg');
                             }
                         });
-                    } else if (key === '_token') {
-                        formData.append(key, data[key]);
                     } else {
                         formData.append(key, data[key]);
                     }
@@ -108,30 +108,32 @@ function syncPendingReports() {
                 }).then(function(resp) {
                     return deletePendingReport(report.id);
                 }).catch(function() {
-                    // Stop syncing on first failure — will retry later
                     return Promise.reject('sync-paused');
                 });
             });
         });
         return chain;
     }).then(function() {
-        // Notify all clients that sync completed
         return self.clients.matchAll().then(function(clients) {
             clients.forEach(function(client) {
                 client.postMessage({ type: 'SYNC_COMPLETE' });
             });
         });
-    }).catch(function() {
-        // Sync will be retried on next connectivity change
-    });
+    }).catch(function() {});
 }
 
 /* ======== Install & Activate ======== */
 self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(CACHE_NAME).then(function(cache) {
-            return cache.addAll(STATIC_ASSETS).catch(function() {
-                // Cache what we can — don't block install on CDN failures
+            return cache.addAll(STATIC_ASSETS).then(function() {
+                return Promise.allSettled(
+                    PRECACHE_PAGES.map(function(url) {
+                        return fetch(url).then(function(resp) {
+                            if (resp.ok) return cache.put(url, resp);
+                        }).catch(function() {});
+                    })
+                );
             });
         })
     );
@@ -145,7 +147,6 @@ self.addEventListener('activate', function(event) {
         })
     );
     self.clients.claim();
-    // Attempt sync on activate
     self.registration.sync.register('sync-reports').catch(function() {});
 });
 
@@ -155,25 +156,20 @@ self.addEventListener('fetch', function(event) {
 
     // Skip non-GET for caching, but intercept POST for offline queue
     if (req.method === 'POST') {
-        // Only intercept form submissions to report endpoints
         if (req.url.includes('/reports/store') || req.url.includes('/quick-report')) {
             event.respondWith(
                 fetch(req.clone()).catch(function() {
-                    // Network failed — queue for later sync
                     var cloned = req.clone();
                     return cloned.formData().then(function(fd) {
                         var data = {};
                         fd.forEach(function(value, key) {
                             if (value instanceof File && value.size < 500000) {
-                                // Read small files as base64 for IndexedDB storage
-                                var reader = new FileReader();
                                 data[key] = { name: value.name, type: value.type, size: value.size, _file: value };
                             } else if (!(value instanceof File)) {
                                 data[key] = value;
                             }
                         });
 
-                        // Process files sequentially
                         var fileKeys = Object.keys(data).filter(function(k) { return data[k] && data[k]._file; });
                         var filePromises = fileKeys.map(function(k) {
                             return new Promise(function(resolve) {
@@ -207,10 +203,28 @@ self.addEventListener('fetch', function(event) {
         }
     }
 
-    // GET requests — cache-first with network update
     if (req.method !== 'GET') return;
     if (req.url.includes('/api/')) return;
 
+    // HTML navigation — network-first, fallback to cache, then offline page
+    if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
+        event.respondWith(
+            fetch(req).then(function(response) {
+                if (response && response.status === 200) {
+                    var clone = response.clone();
+                    caches.open(CACHE_NAME).then(function(cache) { cache.put(req, clone); });
+                }
+                return response;
+            }).catch(function() {
+                return caches.match(req).then(function(cached) {
+                    return cached || caches.match('/offline.html');
+                });
+            })
+        );
+        return;
+    }
+
+    // Static assets — cache-first with network update
     event.respondWith(
         caches.match(req).then(function(cached) {
             var fetched = fetch(req).then(function(response) {
@@ -262,4 +276,13 @@ self.addEventListener('notificationclick', function(event) {
         }
         return clients.openWindow(url);
     }));
+});
+
+/* ======== Message handler (pending count request) ======== */
+self.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'GET_PENDING_COUNT') {
+        getPendingCount().then(function(count) {
+            event.source.postMessage({ type: 'PENDING_COUNT', count: count });
+        });
+    }
 });

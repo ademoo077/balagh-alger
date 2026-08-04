@@ -432,6 +432,25 @@ $wfSteps = [
         </div>
         <?php endif; ?>
 
+        <!-- Citizen close resolved report -->
+        <?php if ($isOwner && $report['status'] === 'resolved'): ?>
+        <div class="show-side-card animate-fade-in-up" style="border:2px solid var(--c-green);border-color:rgba(34,197,94,0.3);">
+            <div class="sc-header" style="border-bottom-color:rgba(34,197,94,0.15);">
+                <div class="sc-icon" style="background:rgba(34,197,94,0.1);color:var(--c-green,#059669);"><i class="fas fa-check-circle"></i></div>
+                <h6 style="color:var(--c-green,#059669);"><?= __('reports.confirm_resolution') ?? 'Confirmer la résolution' ?></h6>
+            </div>
+            <div class="sc-body">
+                <p style="font-size:0.82rem;color:var(--c-text-secondary,#6b7280);margin-bottom:10px;"><?= __('reports.close_description') ?? 'Si le problème est bien résolu, vous pouvez clôturer ce signalement.' ?></p>
+                <form method="POST" action="/reports/<?= $report['id'] ?>/status">
+                    <input type="hidden" name="_token" value="<?= $csrfToken ?>">
+                    <input type="hidden" name="status" value="closed">
+                    <textarea class="form-control form-control-sm mb-2" name="resolution_note" placeholder="<?= __('reports.note_optional') ?>" rows="2" style="border-radius:8px;"></textarea>
+                    <button type="submit" class="btn btn-sm btn-success w-100" style="border-radius:8px;font-weight:700;" data-confirm="<?= __('ui.close_report') ?? 'Clôturer ce signalement' ?>"><i class="fas fa-check me-1"></i> <?= __('reports.close') ?? 'Clôturer' ?></button>
+                </form>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Contact -->
         <div class="show-side-card animate-fade-in-up">
             <div class="sc-header">

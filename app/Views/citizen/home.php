@@ -208,6 +208,45 @@ $wfLabels = ['Soumis','Accusé','Assigné','En cours','Validé'];
     <a href="/reports">Voir tout →</a>
 </div>
 
+<!-- ==================== 8. INSTALL APP BANNER ==================== -->
+<div id="hInstallApp" class="h-install-app c-anim-slide c-delay-4">
+    <div class="h-install-app-bg">
+        <div class="h-install-app-orb h-install-app-orb-1"></div>
+        <div class="h-install-app-orb h-install-app-orb-2"></div>
+    </div>
+    <div class="h-install-app-content">
+        <div class="h-install-app-logo">
+            <img src="/assets/img/icon-192.png" alt="Balagh" width="48" height="48">
+        </div>
+        <div class="h-install-app-text">
+            <h4>Télécharger Balagh</h4>
+            <p>Installez l'application sur votre écran d'accueil pour un accès rapide et des notifications push.</p>
+        </div>
+        <div class="h-install-app-features">
+            <div class="h-install-app-feat">
+                <i class="fas fa-bolt"></i>
+                <span>Accès instantané</span>
+            </div>
+            <div class="h-install-app-feat">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+            </div>
+            <div class="h-install-app-feat">
+                <i class="fas fa-wifi-slash"></i>
+                <span>Fonctionne hors-ligne</span>
+            </div>
+        </div>
+        <div class="h-install-app-actions">
+            <button id="hInstallBtn" class="h-install-app-btn">
+                <i class="fas fa-download"></i> Installer l'application
+            </button>
+            <button id="hInstallDismiss" class="h-install-app-dismiss" title="Pas maintenant">
+                <i class="fas fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
 <?php if (empty($recentReports)): ?>
 <!-- ==================== 8. EMPTY STATE ==================== -->
 <div class="h-empty c-anim-fade c-delay-5">
@@ -385,5 +424,66 @@ document.addEventListener('DOMContentLoaded', function() {
             renderMarkers(filtered);
         });
     });
+
+    /* --- Install App Banner --- */
+    (function() {
+        var banner = document.getElementById('hInstallApp');
+        var installBtn = document.getElementById('hInstallBtn');
+        var dismissBtn = document.getElementById('hInstallDismiss');
+        if (!banner || !installBtn || !dismissBtn) return;
+
+        if (window.matchMedia('(display-mode: standalone)').matches ||
+            localStorage.getItem('balagh-install-dismissed') ||
+            localStorage.getItem('balagh-install-accepted')) {
+            banner.style.display = 'none';
+            return;
+        }
+
+        var deferredPrompt = null;
+
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        installBtn.addEventListener('click', function() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function(result) {
+                    if (result.outcome === 'accepted') {
+                        installBtn.innerHTML = '<i class="fas fa-check"></i> Installé !';
+                        installBtn.classList.add('installed');
+                        localStorage.setItem('balagh-install-accepted', '1');
+                        if (typeof CToast !== 'undefined') CToast.show('Balagh installé !', 'success');
+                        setTimeout(function() { banner.style.display = 'none'; }, 2000);
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                var isAndroid = /Android/.test(navigator.userAgent);
+                var msg = '';
+                if (isIOS) {
+                    msg = 'Sur iPhone/iPad :\n\n1. Appuyez sur le bouton Partager ⬇️\n2. "Ajouter à l\'écran d\'accueil"\n3. Confirmez "Ajouter"';
+                } else if (isAndroid) {
+                    msg = 'Sur Android :\n\n1. Menu ⋮ → "Ajouter à l\'écran d\'accueil"\n2. Confirmez "Ajouter"';
+                } else {
+                    msg = 'Pour installer :\n\n• Chrome/Edge : icône + dans la barre d\'adresse\n• Firefox : Menu → Installer cette application\n• Safari : File → Ajouter au dossier Dock';
+                }
+                alert(msg);
+            }
+        });
+
+        dismissBtn.addEventListener('click', function() {
+            banner.style.display = 'none';
+            localStorage.setItem('balagh-install-dismissed', '1');
+        });
+
+        window.addEventListener('appinstalled', function() {
+            banner.style.display = 'none';
+            deferredPrompt = null;
+            localStorage.setItem('balagh-install-accepted', '1');
+        });
+    })();
 });
 </script>

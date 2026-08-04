@@ -1,7 +1,4 @@
 # Balagh Alger —بلاغ الجزائر
-<p align="center">
-  <img src="balagh-alger-logo.png" alt="Project Logo" width="800" />
-</p>
 
 **Plateforme de signalement citoyen pour les municipalités d'Alger**
 
@@ -41,7 +38,6 @@
 23. [Déploiement](#23-déploiement)
 24. [CLI Artisan](#24-cli-artisan)
 25. [Statistiques](#25-statistiques)
-26. [Backup & Monitoring](#26-backup--monitoring)
 
 ---
 
@@ -59,8 +55,7 @@
 - **CMS** : Page d'accueil entièrement gérable par l'administration
 - **Queue** : Système de jobs asynchrones Redis
 - **SLA** : Suivi des délais avec alertes automatiques
-- **Assistant IA** : Chatbot intelligent avec intégration Gemini API, contexte base de données
-- **~680 fichiers PHP** | **~26 000 lignes de code** | **38 tables MySQL**
+- **670 fichiers PHP** | **~25 000 lignes de code** | **38 tables MySQL**
 
 ---
 
@@ -79,7 +74,7 @@
 - Profil avec statistiques personnelles
 - Mode hors-ligne avec file d'attente de signalements
 - Notifications push
-- Assistant IA intelligent (Gemini API, contexte base de données temps réel)
+- Chatbot intégré
 
 ### Côté Administration
 - Dashboard avec graphiques (catégories, priorités, daïras, tendances)
@@ -94,7 +89,6 @@
 - Système de notifications in-app
 - Génération de rapports PDF
 - Paramètres système
-- Gestion des rôles et permissions (36 permissions, 7 rôles, interface onglets)
 
 ### Page d'accueil publique
 - Statistiques en temps réel (AJAX)
@@ -185,8 +179,7 @@ $this->getUser();                 // Récupère l'utilisateur courant
 | Composant | Technologie | Source |
 |-----------|------------|--------|
 | CSS Framework | Bootstrap | 5.3 (CDN) |
-| Design System | `app.css` / `citizen.css` | Custom (~5 300 lignes) |
-| Assistant IA | Gemini API | — |
+| Design System | `app.css` / `citizen.css` | Custom (~4 600 lignes) |
 | Icônes | Font Awesome | 6.5.1 (CDN) |
 | Icônes MDI | Material Design Icons | 7.4.47 (CDN) |
 | Cartes | Leaflet.js | 1.9.4 (CDN) |
@@ -208,31 +201,12 @@ $this->getUser();                 // Récupère l'utilisateur courant
 | `php artisan queue:flush` | Vider les jobs échoués |
 | `php artisan sla:run` | Exécuter les alertes SLA |
 | `php artisan app:info` | Info application |
-| `php vendor/bin/phpunit` | Lancer les tests |
-| `php vendor/bin/phpunit --filter=xxx` | Filtrer les tests |
 
-### Tests
+### CI/CD
 
-| Métrique | Valeur |
-|----------|--------|
-| Framework | PHPUnit 11 |
-| Tests | 181 tests, 338 assertions |
-| Couverture | Unitaires + Intégration (MySQL) + Fonctionnels (HTTP) |
-| Base de test | `balagh_alger_test` (auto-créée, rollback automatique) |
-
-```bash
-# Lancer tous les tests
-php vendor/bin/phpunit
-
-# Tests unitaires uniquement
-php vendor/bin/phpunit tests/Helpers/
-
-# Tests d'intégration DB
-php vendor/bin/phpunit tests/Helpers/RbacIntegrationTest.php
-
-# Tests fonctionnels (serveur PHP requis sur le port 8000)
-php -S 0.0.0.0:8000 -t public &
-php vendor/bin/phpunit tests/Controllers/
+- Aucun framework de test (pas de PHPUnit)
+- Aucune configuration CI/CD
+- Aucune configuration Docker
 
 ---
 
@@ -467,47 +441,31 @@ intervenant (niveau 3)            ← Signalements qui lui sont assignés
 citizen (niveau 1)                ← Propres signalements uniquement
 ```
 
-### Permissions (36)
+### Permissions (27+)
 
-| Permission | Module | Description |
-|-----------|--------|------------|
-| `dashboard.view` | dashboard | Accès au tableau de bord |
-| `dashboard.stats` | dashboard | Voir les statistiques |
-| `reports.view` | reports | Voir les signalements |
-| `reports.view_all` | reports | Voir tous les signalements |
-| `reports.view_assigned` | reports | Voir les signalements assignés |
-| `reports.view_org` | reports | Voir les signalements de l'organisme |
-| `reports.create` | reports | Créer un signalement |
-| `reports.update` | reports | Modifier un signalement |
-| `reports.delete` | reports | Supprimer un signalement |
-| `reports.assign` | reports | Assigner un signalement |
-| `reports.resolve` | reports | Résoudre un signalement |
-| `reports.comment` | reports | Commenter un signalement |
-| `reports.export` | reports | Exporter les signalements |
-| `reports.reassign` | reports | Réaffecter un signalement |
-| `reports.redirect` | reports | Rediriger vers un autre organisme |
-| `users.view` | users | Voir les utilisateurs |
-| `users.create` | users | Créer des utilisateurs |
-| `users.update` | users | Modifier les utilisateurs |
-| `users.delete` | users | Supprimer des utilisateurs |
-| `users.suspend` | users | Suspendre des utilisateurs |
-| `users.manage_org` | users | Gérer les utilisateurs de l'organisme |
-| `organizations.view` | organizations | Voir les organismes |
-| `organizations.create` | organizations | Créer un organisme |
-| `organizations.update` | organizations | Modifier un organisme |
-| `organizations.delete` | organizations | Supprimer un organisme |
-| `categories.view` | categories | Voir les catégories |
-| `categories.manage` | categories | Gérer les catégories |
-| `dairas.view` | dairas | Voir les daïras |
-| `dairas.manage` | dairas | Gérer les daïras |
-| `notifications.view` | notifications | Voir les notifications |
-| `notifications.manage` | notifications | Gérer les notifications |
-| `settings.view` | settings | Voir les paramètres |
-| `settings.update` | settings | Modifier les paramètres |
-| `audit.view` | audit | Voir le journal d'audit |
-| `landing.manage` | landing | Gérer la page d'accueil |
-
-~ Gestion des rôles accessible via `/settings/roles` (nécessite `settings.update`). Interface avec onglets par rôle, toggles par module, filtre par mot-clé, compteurs.
+| Permission | Description |
+|-----------|------------|
+| `dashboard.view` | Accès au tableau de bord |
+| `reports.create` | Créer des signalements |
+| `reports.view` | Voir les signalements |
+| `reports.update` | Modifier les signalements |
+| `reports.assign` | Assigner des signalements |
+| `reports.close` | Fermer des signalements |
+| `reports.export` | Exporter les rapports |
+| `interventions.manage` | Gérer les interventions |
+| `interventions.validate` | Valider les interventions |
+| `categories.view` | Voir les catégories |
+| `categories.manage` | Gérer les catégories |
+| `organizations.view` | Voir les organisations |
+| `organizations.create` | Créer des organisations |
+| `organizations.update` | Modifier les organisations |
+| `users.view` | Voir les utilisateurs |
+| `users.create` | Créer des utilisateurs |
+| `users.update` | Modifier les utilisateurs |
+| `audit.view` | Voir le journal d'audit |
+| `settings.manage` | Gérer les paramètres |
+| `landing.manage` | Gérer la page d'accueil |
+| `dairas.view` | Voir les daïras |
 
 ### Résolution de portée
 
@@ -521,17 +479,6 @@ citizen (niveau 1)                ← Propres signalements uniquement
 // Exemple pour un intervenant :
 // WHERE r.assigned_to = ? OR r.citizen_id = ?
 ```
-
-### Interface de gestion
-
-Un panneau de gestion des rôles est disponible sur `/settings/roles` (accessible avec `settings.update`) :
-
-- **7 rôles** organisés en onglets (pills)
-- **36 permissions** regroupées par module (dashboard, reports, users, organizations, categories, dairas, notifications, settings, audit, landing)
-- Toggles switch par permission, select/deselect par module ou global
-- Filtre par mot-clé
-- Admin Central en lecture seule (bypass code)
-- Compteurs dynamiques (par rôle et par module)
 
 ### Utilisation dans les contrôleurs
 
@@ -997,28 +944,6 @@ htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 ├── queue/
 │   └── worker.php                    # Worker Redis avec options CLI
 │
-├── tests/
-│   ├── bootstrap.php                 # Auto-loader, env vars test DB
-│   ├── DatabaseTestCase.php          # Base avec transaction/rollback
-│   ├── Helpers/                      # 13 fichiers de tests
-│   │   ├── ValidatorTest.php
-│   │   ├── CsrfTest.php
-│   │   ├── I18nTest.php
-│   │   ├── HelperTest.php
-│   │   ├── RouterTest.php
-│   │   ├── SessionTest.php
-│   │   ├── DeadlineHelperTest.php
-│   │   ├── RbacTest.php
-│   │   ├── BadgeTest.php
-│   │   ├── RbacIntegrationTest.php
-│   │   ├── BadgeIntegrationTest.php
-│   │   └── NotificationIntegrationTest.php
-│   ├── Middleware/
-│   │   └── AuthMiddlewareTest.php
-│   └── Controllers/
-│       ├── LandingControllerTest.php
-│       └── TrackingControllerTest.php
-│
 ├── app/
 │   ├── Config/
 │   │   ├── app.php                   # Configuration générale
@@ -1039,8 +964,7 @@ htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 │   │   ├── OrganizationController.php # CRUD organisations
 │   │   ├── DairaController.php       # Daïras
 │   │   ├── SectionCommuneController.php # Affectation communes
-│   │   ├── SettingController.php     # Paramètres généraux
-│   │   ├── RoleController.php        # Gestion des rôles & permissions
+│   │   ├── SettingController.php     # Paramètres
 │   │   ├── NotificationController.php # Notifications
 │   │   ├── AuditController.php       # Journal d'audit
 │   │   ├── TrackingController.php    # Suivi public
@@ -1105,9 +1029,8 @@ htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 │       ├── organizations/            # index, create, show, edit
 │       ├── dairas/                   # index, show
 │       ├── section-communes/         # index
-│       ├── settings/                 # index, roles
+│       ├── settings/                 # index
 │       ├── notifications/            # index, citizen, _dropdown_items
-│       ├── ai/                       # chat (assistant IA)
 │       ├── tracking/                 # index, show, not_found (public)
 │       ├── share/                    # show, not_found (public)
 │       ├── citizen/                  # home, quick-report, feed, map,
@@ -1126,11 +1049,11 @@ htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     ├── favicon.ico
     ├── assets/
     │   ├── css/
-    │   │   ├── app.css               # Design system admin (~2 720 lignes)
-    │   │   └── citizen.css           # Design system citoyen (~2 560 lignes)
+    │   │   ├── app.css               # Design system admin (2128 lignes)
+    │   │   └── citizen.css           # Design system citoyen (2556 lignes)
     │   ├── js/
-    │   │   ├── app.js                # JS admin (~970 lignes)
-    │   │   ├── citizen.js            # JS citoyen (~510 lignes)
+    │   │   ├── app.js                # JS admin (700 lignes)
+    │   │   ├── citizen.js            # JS citoyen (506 lignes)
     │   │   └── i18n.js               # Client-side i18n (120 lignes)
     │   └── img/
     │       ├── icon-192.png
@@ -1181,8 +1104,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 | **Interventions** | `/interventions`, `/interventions/{id}` |
 | **Dashboard** | `/dashboard`, `/dashboard/impact`, `/dashboard/agent` |
 | **Citoyen** | `/home`, `/quick-report`, `/my-profile`, `/badges`, `/leaderboard`, `/citizen/map`, `/feed` |
-| **AI Assistant** | `/ai/chat` (interface), `/api/ai/ask` (endpoint API) |
-| **Admin** | `/users/*`, `/organizations/*`, `/categories/*`, `/dairas/*`, `/section-communes/*`, `/settings`, `/settings/roles`, `/notifications/*`, `/audit` |
+| **Admin** | `/users/*`, `/organizations/*`, `/categories/*`, `/dairas/*`, `/section-communes/*`, `/settings`, `/notifications/*`, `/audit` |
 | **CMS Landing** | `/admin/landing/*` (partners, gallery, testimonials, before-after, FAQ, settings) |
 | **Feed** | `/feed`, `/feed/store`, `/feed/{id}/like`, `/feed/{id}/comment` |
 
@@ -1206,14 +1128,12 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 | `DairaController` | Liste daïras (avec nombre de communes) et vue détail (communes + signalements récents) |
 | `SectionCommuneController` | Affectation/suppression communes aux chefs de section. Filtré par rôle |
 | `SettingController` | Gestion des paramètres système. Whitelist de clés anti mass-assignment |
-| `RoleController` | Gestion des rôles et permissions. Interface onglets avec toggles par module, select/deselect global et par module |
 | `NotificationController` | Liste notifications, marquer lu, marquer toutes lues, compteur (AJAX). Dropdown XHR |
 | `AuditController` | Visualiseur de journal d'audit avec filtres (utilisateur, action, modèle, dates). Paginé (50/page) |
 | `TrackingController` | Suivi public (pas d'auth). Statut, timeline, interventions, deadline. Rendu sans layout |
 | `ShareController` | Page de partage avec meta OpenGraph pour réseaux sociaux |
 | `LandingController` | Page d'accueil publique : stats live, catégories, daïras avec compteurs, contenu dynamique CMS |
 | `LandingPageController` | CMS admin pour la landing : partenaires, galerie, témoignages, avant/après, FAQ, paramètres |
-| `AiController` | Assistant IA : chat interface, endpoint `ask()` avec contexte base de données, intégration Gemini API |
 
 ### Contrôleurs API (10)
 
@@ -1229,7 +1149,6 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 | `Api\CategoryController` | `/api/subcategories/{id}` | Sous-catégories par catégorie |
 | `Api\DairaController` | `/api/communes/{id}` | Communes par daïra |
 | `Api\LangController` | `/api/set-lang` | Changement de langue |
-| `AiController` | `/api/ai/ask` | Assistant IA (conversation avec contexte DB) |
 
 ---
 
@@ -1291,7 +1210,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 }
 ```
 
-### CSS Admin (`app.css` — ~2 720 lignes)
+### CSS Admin (`app.css` — 2128 lignes)
 
 - Design system complet avec variables CSS
 - Sidebar sombre avec navigation par icônes
@@ -1300,7 +1219,6 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 - Heatmap grid (7 jours × 24 heures)
 - Période arrows (↑↓ comparaison)
 - Thème dark/light basculable
-- Assistant IA chat : glassmorphisme, bulles enrichies markdown, typing dots, suggestions, design responsive
 
 ### CSS Citoyen (`citizen.css` — 2556 lignes)
 
@@ -1312,7 +1230,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 - Mode standalone (`@media (display-mode: standalone)`)
 - Chatbot intégré
 
-### JS Admin (`app.js` — ~970 lignes)
+### JS Admin (`app.js` — 700 lignes)
 
 - Gestion thème (localStorage)
 - Sidebar collapsible
@@ -1321,7 +1239,6 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 - Notifications dropdown (AJAX)
 - Compteurs animés (`data-count-up`)
 - Thème toggle
-- Assistant IA : envoi/réception messages, historique conversation, markdown formatting, chargement indicateur, suggestions, effacer dialogue
 
 ### JS Citoyen (`citizen.js` — 506 lignes)
 
@@ -1330,7 +1247,7 @@ Le routeur custom (`Router.php`) utilise un tableau plat de définitions :
 - Changement de langue
 - Recherche locale
 - Animations au scroll
-- Chatbot avec réponses prédéfinies (citoyen)
+- Chatbot avec réponses prédéfinies
 - PWA install banner
 
 ### JS i18n (`i18n.js` — 120 lignes)
@@ -1460,8 +1377,8 @@ php artisan sla:run                             # Exécuter les alertes SLA
 | Daïras | 13 |
 | Communes | 57 |
 | Tables MySQL | 38 |
-| Fichiers PHP | ~680 |
-| Lignes de code | ~26 000 |
+| Fichiers PHP | 670 |
+| Lignes de code | ~25 000 |
 
 ### Répartition des signalements
 
@@ -1491,90 +1408,23 @@ php artisan sla:run                             # Exécuter les alertes SLA
 ### Fichiers du projet
 
 ```
-~680 fichiers PHP
-    31 contrôleurs (19 web + 11 API + 1 base)
-    16 helpers
-   5 jobs
-   50+ vues
-   2 layouts
-   2 fichiers de routes
-
-18 fichiers de tests
-   181 tests PHPUnit (338 assertions)
-   3 phases : unitaires + intégration DB + fonctionnels HTTP
-   Base dédiée : balagh_alger_test
+670 fichiers PHP
+  29 contrôleurs (18 web + 10 API + 1 base)
+  16 helpers
+  5 jobs
+  50+ vues
+  2 layouts
+  2 fichiers de routes
 
 4 fichiers JavaScript
-  app.js      (~970 lignes — admin + assistant IA)
-  citizen.js  (~510 lignes — citoyen)
+  app.js      (700 lignes — admin)
+  citizen.js  (506 lignes — citoyen)
   i18n.js     (120 lignes — traductions)
   sw.js       (288 lignes — service worker)
 
 2 fichiers CSS
-  app.css     (~2 740 lignes — design admin + assistant IA + sidebar scrollbar)
-  citizen.css (~2 560 lignes — design citoyen)
-```
-
----
-
-## 26. Backup & Monitoring
-
-### Système de backup automatisé
-
-```
-/backup/
-├── db/      balagh_YYYYMMDD_HHMMSS.sql.gz    ← Dump MySQL (rétention 30 jours)
-├── files/   snap_YYYYMMDD_HHMMSS/            ← Uploads (snapshots journaliers, rétention 7 jours)
-├── config/  config_YYYYMMDD_HHMMSS.tar.gz    ← .env + app/Config/ (rétention 90 jours)
-└── logs/    backup.log                        ← Journal des opérations
-```
-
-### Planification (cron)
-
-| Horaire | Action |
-|---------|--------|
-| 3h00 | Backup base de données (mysqldump --single-transaction) |
-| 4h00 | Backup fichiers uploads (rsync avec hardlinks) |
-| 5h00 | Backup configuration (.env + app/Config/) |
-| Dimanche 6h00 | Backup complet |
-
-### Monitoring (balagh-monitor.service)
-
-Service systemd qui vérifie toutes les 5 minutes :
-
-| Service | Méthode de test | Action si down |
-|---------|----------------|----------------|
-| MariaDB | `mysqladmin ping` | `systemctl restart mariadb` |
-| Redis | `redis-cli ping` | `/etc/init.d/redis-server restart` |
-| PHP dev server | `curl -f http://localhost:8000/` | `pkill + nohup php -S ...` |
-| Disque | `df /` > 85% | Alerte dans `/var/log/balagh-monitor.log` |
-| Backup | Fichier DB < 24h | Avertissement si absent |
-
-### Scripts
-
-| Script | Emplacement | Usage |
-|--------|------------|-------|
-| Backup | `/usr/local/bin/balagh-backup.sh` | `balagh-backup.sh [db\|files\|config\|all]` |
-| Restore | `/usr/local/bin/balagh-restore.sh` | `balagh-restore.sh /backup/db/balagh_*.sql.gz` |
-| Monitor | `/usr/local/bin/balagh-monitor.sh` | Service systemd auto-récupération |
-
-### Sauvegarde manuelle
-
-```bash
-# Backup complet
-/usr/local/bin/balagh-backup.sh all
-
-# Backup DB uniquement
-/usr/local/bin/balagh-backup.sh db
-
-# Restauration
-/usr/local/bin/balagh-restore.sh /backup/db/balagh_20260729_132036.sql.gz
-
-# Logs monitoring
-journalctl -u balagh-monitor.service -f
-
-# Logs backup
-tail -f /backup/logs/backup.log
+  app.css     (2128 lignes — design admin)
+  citizen.css (2556 lignes — design citoyen)
 ```
 
 ---

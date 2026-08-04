@@ -2,12 +2,31 @@
 namespace App\Helpers;
 
 use App\Helpers\Database;
+use App\Helpers\Queue;
 
 class Notification {
     public static function create(int $userId, string $type, string $title, string $message, $data = null): void {
         Database::getConnection()->prepare(
             "INSERT INTO notifications (user_id, type, title, message, data) VALUES (?, ?, ?, ?, ?)"
         )->execute([$userId, $type, $title, $message, $data ? json_encode($data) : null]);
+    }
+
+    public static function dispatch(int $userId, string $type, string $title, string $message, $data = null, bool $push = true): void {
+        if (Queue::isAvailable()) {
+            Queue::dispatch(\App\Jobs\SendNotificationJob::class, [
+                'userId' => $userId, 'type' => $type, 'title' => $title,
+                'message' => $message, 'data' => $data, 'push' => $push,
+            ]);
+        } else {
+            self::create($userId, $type, $title, $message, $data);
+            if ($push) {
+                self::sendPushNow($userId, $title, $message);
+            }
+        }
+    }
+
+    public static function sendPushNow(int $userId, string $title, string $body, string $url = '/notifications'): void {
+        \App\Controllers\Api\PushController::sendPush($userId, $title, $body, $url);
     }
 
     public static function getUnreadCount(int $userId): int {

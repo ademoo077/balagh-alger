@@ -232,9 +232,9 @@ class UserController extends Controller {
             }
             $stats['orgByStatus'] = $q2->fetchAll();
 
-            $q3 = $db->prepare("SELECT COUNT(*) FROM reports WHERE assigned_to = ? AND deleted_at IS NULL");
-            $q3->execute([$id]);
-            $stats['handled'] = (int) $q3->fetchColumn();
+            $qAssignedBy = $db->prepare("SELECT COUNT(*) FROM reports WHERE assigned_by = ? AND deleted_at IS NULL");
+            $qAssignedBy->execute([$id]);
+            $stats['assigned'] = (int) $qAssignedBy->fetchColumn();
 
         } elseif ($primaryRole === 'chef_unite') {
             $dairaId = $user['daira_id'];

@@ -126,7 +126,7 @@ class InterventionController extends Controller {
         $this->checkCsrf("/interventions/{$id}");
 
         $db = Database::getConnection();
-        $report = $db->prepare("SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL");
+        $report = $db->prepare("SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL AND deleted_at IS NULL");
         $report->execute([$id]);
         $report = $report->fetch();
 
@@ -188,7 +188,7 @@ class InterventionController extends Controller {
         $db = Database::getConnection();
         $userId = Session::getUserId();
 
-        $report = $db->prepare("SELECT * FROM reports WHERE id = ?");
+        $report = $db->prepare("SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL");
         $report->execute([$id]);
         $report = $report->fetch();
 
@@ -230,7 +230,7 @@ class InterventionController extends Controller {
         $db = Database::getConnection();
         $userId = Session::getUserId();
 
-        $report = $db->prepare("SELECT * FROM reports WHERE id = ?");
+        $report = $db->prepare("SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL");
         $report->execute([$id]);
         $report = $report->fetch();
 
@@ -239,7 +239,8 @@ class InterventionController extends Controller {
             $this->redirect("/interventions/{$id}");
         }
 
-        $photoType = $_POST['photo_type'] ?? 'before';
+        $allowedPhotoTypes = ['during', 'after'];
+        $photoType = in_array($_POST['photo_type'] ?? '', $allowedPhotoTypes) ? $_POST['photo_type'] : 'during';
 
         $intStmt = $db->prepare("SELECT id FROM report_interventions WHERE report_id = ? ORDER BY created_at DESC LIMIT 1");
         $intStmt->execute([$id]);
@@ -311,7 +312,7 @@ class InterventionController extends Controller {
         $db = Database::getConnection();
         $userId = Session::getUserId();
 
-        $report = $db->prepare("SELECT * FROM reports WHERE id = ?");
+        $report = $db->prepare("SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL");
         $report->execute([$id]);
         $report = $report->fetch();
 
@@ -370,7 +371,7 @@ class InterventionController extends Controller {
         $userId = Session::getUserId();
         $action = $_POST['validation_action'] ?? 'validate';
 
-        $report = $db->prepare("SELECT * FROM reports WHERE id = ?");
+        $report = $db->prepare("SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL");
         $report->execute([$id]);
         $report = $report->fetch();
 
@@ -490,7 +491,7 @@ class InterventionController extends Controller {
         $db = Database::getConnection();
         $userId = Session::getUserId();
 
-        $report = $db->prepare("SELECT * FROM reports WHERE id = ?");
+        $report = $db->prepare("SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL");
         $report->execute([$id]);
         $report = $report->fetch();
 

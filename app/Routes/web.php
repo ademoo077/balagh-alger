@@ -33,6 +33,7 @@ return [
     'GET /reports/{id}/edit' => ['ReportController', 'edit'],
     'POST /reports/{id}/update' => ['ReportController', 'update'],
     'POST /reports/{id}/assign' => ['ReportController', 'assign'],
+    'GET /reports/{id}/status' => ['ReportController', 'show'],
     'POST /reports/{id}/status' => ['ReportController', 'changeStatus'],
     'POST /reports/{id}/redirect' => ['ReportController', 'redirectReport'],
     'POST /reports/{id}/comment' => ['ReportController', 'comment'],

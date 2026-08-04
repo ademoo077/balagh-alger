@@ -85,10 +85,10 @@ class DashboardController extends Controller {
         $byCategory->execute([$userId]);
         $byCategory = $byCategory->fetchAll();
 
-        $bySubcategory = $db->prepare("SELECT sc.name as subcat_name, c.name as cat_name, c.color, COUNT(r.id) as count
-            FROM reports r JOIN subcategories sc ON r.subcategory_id = sc.id JOIN categories c ON sc.category_id = c.id
+        $bySubcategory = $db->prepare("SELECT COALESCE(sc.name, 'Non défini') as subcat_name, c.name as cat_name, c.color, COUNT(r.id) as count
+            FROM reports r LEFT JOIN subcategories sc ON r.subcategory_id = sc.id JOIN categories c ON r.category_id = c.id
             WHERE r.citizen_id = ? AND r.deleted_at IS NULL
-            GROUP BY sc.id ORDER BY count DESC LIMIT 20");
+            GROUP BY sc.id, c.id ORDER BY count DESC LIMIT 20");
         $bySubcategory->execute([$userId]);
         $bySubcategory = $bySubcategory->fetchAll();
 
@@ -115,7 +115,7 @@ class DashboardController extends Controller {
         $byCategory->execute($params);
         $byCategory = $byCategory->fetchAll();
 
-        $bySubcategory = $db->prepare("SELECT sc.name as subcat_name, c.name as cat_name, c.color, COUNT(r.id) as count FROM reports r JOIN subcategories sc ON r.subcategory_id = sc.id JOIN categories c ON sc.category_id = c.id WHERE {$where} GROUP BY sc.id ORDER BY count DESC LIMIT 20");
+        $bySubcategory = $db->prepare("SELECT COALESCE(sc.name, 'Non défini') as subcat_name, c.name as cat_name, c.color, COUNT(r.id) as count FROM reports r LEFT JOIN subcategories sc ON r.subcategory_id = sc.id JOIN categories c ON r.category_id = c.id WHERE {$where} GROUP BY sc.id, c.id ORDER BY count DESC LIMIT 20");
         $bySubcategory->execute($params);
         $bySubcategory = $bySubcategory->fetchAll();
 
@@ -142,6 +142,17 @@ class DashboardController extends Controller {
         return compact('byCategory', 'bySubcategory', 'byPriority', 'byStatus', 'recentReports', 'mapData', 'byMonth');
     }
 
+    private function getActivityHeatmap($db, string $where, array $params): array {
+        $heatSql = "SELECT HOUR(h.created_at) as hour, DAYOFWEEK(h.created_at) as day, COUNT(*) as count
+            FROM report_history h
+            JOIN reports r ON h.report_id = r.id
+            WHERE r.deleted_at IS NULL AND h.created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+            GROUP BY HOUR(h.created_at), DAYOFWEEK(h.created_at)";
+        $heatStmt = $db->prepare($heatSql);
+        $heatStmt->execute([]);
+        return $heatStmt->fetchAll();
+    }
+
     private function getKPIs($db, string $where, array $params, string $periodSql): array {
         $total = $this->count($db, $where . $periodSql, $params);
         $submitted = $this->count($db, $where . $periodSql, $params, " AND r.status = 'submitted'");
@@ -154,7 +165,21 @@ class DashboardController extends Controller {
         $pendingReview = $this->count($db, $where . $periodSql, $params, " AND r.status = 'pending_review'");
         $pendingUnite = $this->count($db, $where, $params, " AND r.status = 'pending_unite'");
         $overdue = $this->count($db, $where, $params, " AND r.deadline_at IS NOT NULL AND r.deadline_at < NOW() AND r.status NOT IN ('resolved','closed','rejected')");
-        return compact('total', 'submitted', 'inProgress', 'resolved', 'urgent', 'today', 'pending', 'closed', 'pendingReview', 'pendingUnite', 'overdue');
+
+        $prevWhere = str_replace('MONTH(r.created_at) = MONTH(CURDATE()) AND YEAR(r.created_at) = YEAR(CURDATE())', 'MONTH(r.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(r.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))', $periodSql);
+        $prevWhere = str_replace('r.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)', 'r.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND r.created_at < DATE_SUB(CURDATE(), INTERVAL 7 DAY)', $prevWhere);
+        $prevWhere = str_replace('r.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)', 'r.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND r.created_at < DATE_SUB(CURDATE(), INTERVAL 3 MONTH)', $prevWhere);
+        $prevWhere = str_replace('YEAR(r.created_at) = YEAR(CURDATE())', 'YEAR(r.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))', $prevWhere);
+        $prevWhere = str_replace('DATE(r.created_at) = CURDATE()', 'DATE(r.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)', $prevWhere);
+
+        $prevTotal = $this->count($db, $where . $prevWhere, $params);
+        $prevPending = $this->count($db, $where . $prevWhere, $params, " AND r.status IN ('submitted','acknowledged')");
+        $prevInProgress = $this->count($db, $where . $prevWhere, $params, " AND r.status = 'in_progress'");
+        $prevResolved = $this->count($db, $where . $prevWhere, $params, " AND r.status IN ('resolved','validated')");
+        $prevUrgent = $this->count($db, $where . $prevWhere, $params, " AND r.priority = 'urgent' AND r.status NOT IN ('resolved','closed')");
+
+        return compact('total', 'submitted', 'inProgress', 'resolved', 'urgent', 'today', 'pending', 'closed', 'pendingReview', 'pendingUnite', 'overdue',
+            'prevTotal', 'prevPending', 'prevInProgress', 'prevResolved', 'prevUrgent');
     }
 
     private function adminCentralDashboard($db, int $userId): void {
@@ -165,6 +190,7 @@ class DashboardController extends Controller {
 
         $k = $this->getKPIs($db, $where, $params, $periodSql);
         $charts = $this->getChartQueries($db, $where, $params);
+        $charts['activityHeatmap'] = $this->getActivityHeatmap($db, $where, $params);
 
         $byDaira = $db->prepare("SELECT d.name, COUNT(r.id) as count FROM reports r JOIN dairas d ON r.daira_id = d.id WHERE {$where} GROUP BY d.id ORDER BY count DESC");
         $byDaira->execute($params);
@@ -186,6 +212,7 @@ class DashboardController extends Controller {
 
         $k = $this->getKPIs($db, $where, $params, $periodSql);
         $charts = $this->getChartQueries($db, $where, $params);
+        $charts['activityHeatmap'] = $this->getActivityHeatmap($db, $where, $params);
 
         $byDaira = $db->prepare("SELECT d.name, COUNT(r.id) as count FROM reports r JOIN dairas d ON r.daira_id = d.id WHERE {$where} GROUP BY d.id ORDER BY count DESC");
         $byDaira->execute($params);
@@ -213,6 +240,7 @@ class DashboardController extends Controller {
 
         $k = $this->getKPIs($db, $where, $params, $periodSql);
         $charts = $this->getChartQueries($db, $where, $params);
+        $charts['activityHeatmap'] = $this->getActivityHeatmap($db, $where, $params);
 
         $byCommune = $db->prepare("SELECT com.name, COUNT(r.id) as count FROM reports r JOIN communes com ON r.commune_id = com.id WHERE {$where} GROUP BY com.id ORDER BY count DESC");
         $byCommune->execute($params);
@@ -241,6 +269,7 @@ class DashboardController extends Controller {
 
         $k = $this->getKPIs($db, $where, $params, $periodSql);
         $charts = $this->getChartQueries($db, $where, $params);
+        $charts['activityHeatmap'] = $this->getActivityHeatmap($db, $where, $params);
 
         $assignedCommunes = $db->prepare("SELECT sc.commune_id, com.name as commune_name FROM section_communes sc JOIN communes com ON sc.commune_id = com.id WHERE sc.user_id = ? AND sc.organization_id = ?");
         $assignedCommunes->execute([$userId, Session::get('organization_id')]);

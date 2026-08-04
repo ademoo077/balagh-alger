@@ -288,6 +288,8 @@ class ReportController extends Controller {
             && in_array($report['status'], ['resolved', 'closed']) 
             && !$rating;
 
+        $isOwner = ($report['citizen_id'] && $report['citizen_id'] == Session::getUserId());
+
         $intPhotosStmt = $db->prepare("SELECT ip.*, ri.status as intervention_status FROM intervention_photos ip LEFT JOIN report_interventions ri ON ip.intervention_id = ri.id WHERE ip.report_id = ? ORDER BY ip.photo_type ASC, ip.created_at ASC");
         $intPhotosStmt->execute([$id]);
         $interventionPhotos = $intPhotosStmt->fetchAll();
@@ -297,7 +299,7 @@ class ReportController extends Controller {
             $organizations = $db->query("SELECT id, name FROM organizations WHERE is_active = 1 ORDER BY name")->fetchAll();
         }
 
-        $this->view('reports/show', compact('report', 'images', 'comments', 'history', 'users', 'csrfToken', 'canAssign', 'canEdit', 'canDelete', 'canComment', 'canChangeStatus', 'canRedirect', 'primaryRole', 'rating', 'canRate', 'interventionPhotos', 'organizations'));
+        $this->view('reports/show', compact('report', 'images', 'comments', 'history', 'users', 'csrfToken', 'canAssign', 'canEdit', 'canDelete', 'canComment', 'canChangeStatus', 'canRedirect', 'primaryRole', 'rating', 'canRate', 'interventionPhotos', 'organizations', 'isOwner'));
     }
 
     public function edit(int $id): void {
@@ -448,14 +450,18 @@ class ReportController extends Controller {
             $this->redirect('/reports');
         }
 
-        if (!Rbac::has('reports.update')) {
-            $this->withError('Vous n\'avez pas la permission de modifier le statut.');
-            $this->redirect("/reports/{$id}");
-        }
-
         $newStatus = $_POST['status'] ?? '';
         $note = $_POST['resolution_note'] ?? null;
         $primaryRole = Rbac::getPrimaryRole();
+        $userId = Session::getUserId();
+        $isOwner = ($report['citizen_id'] && $report['citizen_id'] == $userId);
+
+        $citizenAllowed = ($isOwner && $primaryRole === 'citizen' && $newStatus === 'closed' && $report['status'] === 'resolved');
+
+        if (!$citizenAllowed && !Rbac::has('reports.update')) {
+            $this->withError('Vous n\'avez pas la permission de modifier le statut.');
+            $this->redirect("/reports/{$id}");
+        }
 
         $allowedStatuses = [
             'admin_central' => ['submitted', 'acknowledged', 'assigned', 'in_progress', 'pending_review', 'pending_unite', 'validated', 'resolved', 'closed', 'rejected'],
@@ -464,6 +470,7 @@ class ReportController extends Controller {
             'chef_unite' => ['assigned', 'in_progress', 'validated'],
             'chef_section' => ['assigned', 'in_progress', 'pending_unite'],
             'intervenant' => ['in_progress'],
+            'citizen' => ['closed'],
         ];
 
         $allowed = $allowedStatuses[$primaryRole] ?? [];
@@ -484,7 +491,7 @@ class ReportController extends Controller {
             'pending_unite' => 6,
             'validated' => 7,
             'resolved' => 7,
-            'closed' => 8,
+            'closed' => 7,
             'rejected' => 4,
         ];
         $params[] = $stepMap[$newStatus] ?? $report['workflow_step'];
@@ -508,19 +515,22 @@ class ReportController extends Controller {
             VALUES (?, ?, 'status_change', ?, ?)")
             ->execute([$id, Session::getUserId(), $newStatus, $note]);
 
-        if ($newStatus === 'resolved' && $report['citizen_id']) {
+        if ($newStatus === 'resolved' && $report['citizen_id'] && !$isOwner) {
             $title = __('notifications.report_resolved_title');
             $msg = str_replace(':code', $report['tracking_code'], __('notifications.report_resolved_msg'));
             \App\Helpers\Notification::create($report['citizen_id'], 'status_update', $title, $msg, ['report_id' => $id]);
             \App\Controllers\Api\PushController::sendPush($report['citizen_id'], $title, $msg, '/reports/' . $id);
             \App\Helpers\Badge::checkAndAward($report['citizen_id']);
             \App\Helpers\Gamification::addPoints($report['citizen_id'], 'report_resolved', $id, 'report');
-        } elseif ($newStatus === 'closed' && $report['citizen_id']) {
+        } elseif ($newStatus === 'resolved' && $report['citizen_id'] && $isOwner) {
+            \App\Helpers\Badge::checkAndAward($report['citizen_id']);
+            \App\Helpers\Gamification::addPoints($report['citizen_id'], 'report_resolved', $id, 'report');
+        } elseif ($newStatus === 'closed' && $report['citizen_id'] && !$isOwner) {
             $title = __('notifications.report_closed_title');
             $msg = str_replace(':code', $report['tracking_code'], __('notifications.report_closed_msg'));
             \App\Helpers\Notification::create($report['citizen_id'], 'status_update', $title, $msg, ['report_id' => $id]);
             \App\Controllers\Api\PushController::sendPush($report['citizen_id'], $title, $msg, '/reports/' . $id);
-        } elseif ($report['citizen_id']) {
+        } elseif ($report['citizen_id'] && !$isOwner) {
             $title = 'Mise à jour de votre signalement';
             $msg = str_replace(':code', $report['tracking_code'], "Le statut de votre signalement :code a été mis à jour.");
             \App\Controllers\Api\PushController::sendPush($report['citizen_id'], $title, $msg, '/reports/' . $id);

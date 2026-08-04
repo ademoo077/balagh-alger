@@ -24,6 +24,7 @@ $csrfToken = $csrfToken ?? (\App\Helpers\Session::get('csrf_token') ?? \App\Help
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/assets/img/icon-192.png">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <meta name="csrf-token" content="<?= $csrfToken ?>">
     <script>
     (function(){var t=localStorage.getItem('balagh-theme');if(t){document.documentElement.setAttribute('data-bs-theme',t);}})();
@@ -338,13 +339,13 @@ $csrfToken = $csrfToken ?? (\App\Helpers\Session::get('csrf_token') ?? \App\Help
             <div class="content-area">
                 <?php if ($msg = \App\Helpers\Session::getFlash('success')): ?>
                 <div class="alert alert-success alert-dismissible fade show animate-fade-in" role="alert">
-                    <i class="fas fa-check-circle me-2"></i> <?= $msg ?>
+                    <i class="fas fa-check-circle me-2"></i> <?= htmlspecialchars($msg) ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <?php endif; ?>
                 <?php if ($msg = \App\Helpers\Session::getFlash('error')): ?>
                 <div class="alert alert-danger alert-dismissible fade show animate-fade-in" role="alert">
-                    <i class="fas fa-exclamation-circle me-2"></i> <?= $msg ?>
+                    <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($msg) ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <?php endif; ?>

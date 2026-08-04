@@ -490,6 +490,17 @@
     // Initialize chatbot on load
     document.addEventListener('DOMContentLoaded', function() {
         CBot.init();
+
+        // data-confirm handler (native confirm, no SweetAlert2)
+        document.querySelectorAll('[data-confirm]').forEach(function(el) {
+            el.addEventListener('click', function(e) {
+                var msg = this.dataset.confirm || 'Êtes-vous sûr ? Cette action est irréversible.';
+                if (!confirm(msg)) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+            });
+        });
     });
 
 })();

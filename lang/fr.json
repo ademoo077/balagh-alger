@@ -387,6 +387,7 @@
         "daira_reports": "Signalements daïra",
         "section_reports": "Signalements section",
         "assigned_directly": "Assignés directement",
+        "assigned_by_you": "Assignés par vous",
         "pending_count": "En attente",
         "interventions": "Interventions",
         "completed": "Terminées",

@@ -168,6 +168,17 @@ class AuthController extends Controller {
         if (!Csrf::verify($_POST['_token'] ?? '')) {
             $this->withError('Token invalide.');
             $this->redirect('/forgot-password');
+            return;
+        }
+        $email = trim($_POST['email'] ?? '');
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+        if ($user) {
+            $token = bin2hex(random_bytes(32));
+            $db->prepare("UPDATE users SET reset_token = ?, reset_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?")
+                ->execute([$token, $user['id']]);
         }
         $this->withSuccess('Si cet email existe, un lien de réinitialisation vous a été envoyé.');
         $this->redirect('/forgot-password');

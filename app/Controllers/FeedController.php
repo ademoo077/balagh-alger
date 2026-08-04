@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Helpers\Database;
 use App\Helpers\Session;
 use App\Helpers\Rbac;
+use App\Helpers\Csrf;
 
 class FeedController extends Controller {
 
@@ -53,9 +54,17 @@ class FeedController extends Controller {
             return;
         }
 
+        $token = $_POST['_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!Csrf::verify($token)) {
+            echo json_encode(['success' => false, 'message' => 'CSRF invalide']);
+            return;
+        }
+
         $title = trim($_POST['title'] ?? '');
         $body = trim($_POST['body'] ?? '');
         $reportId = !empty($_POST['report_id']) ? (int)$_POST['report_id'] : null;
+        $allowedTypes = ['discussion', 'update', 'feedback', 'question'];
+        $postType = in_array($_POST['post_type'] ?? '', $allowedTypes) ? $_POST['post_type'] : 'discussion';
 
         if (!$title && !$body) {
             echo json_encode(['success' => false, 'message' => 'Contenu requis']);
@@ -66,7 +75,7 @@ class FeedController extends Controller {
         $userId = Session::getUserId();
 
         $stmt = $db->prepare("INSERT INTO community_posts (user_id, title, body, post_type, report_id) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$userId, $title ?: 'Publication', $body, $_POST['post_type'] ?? 'discussion', $reportId]);
+        $stmt->execute([$userId, $title ?: 'Publication', $body, $postType, $reportId]);
         $postId = (int)$db->lastInsertId();
 
         // Photos
@@ -98,6 +107,8 @@ class FeedController extends Controller {
 
     public function like(int $postId): void {
         $this->auth();
+        $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!Csrf::verify($token)) { echo json_encode(['success' => false]); return; }
         $userId = Session::getUserId();
         $db = Database::getConnection();
 
@@ -117,6 +128,8 @@ class FeedController extends Controller {
 
     public function comment(int $postId): void {
         $this->auth();
+        $token = $_POST['_token'] ?? '';
+        if (!Csrf::verify($token)) { echo json_encode(['success' => false]); return; }
         $body = trim($_POST['body'] ?? '');
         if (!$body) { echo json_encode(['success' => false]); return; }
 
